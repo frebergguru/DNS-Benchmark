@@ -49,8 +49,12 @@ if [[ "$ARCH" != "$HOST_ARCH" && "${DNSB_IN_CROSS_CONTAINER:-0}" != "1" ]]; then
     esac
     IMAGE="ubuntu:22.04"
     echo ">> Cross-arch build: launching $PLATFORM container for $ARCH"
+    # Use --network=host to avoid the host needing the docker0 bridge +
+    # iptables masquerade rules; some kernels / firewalls refuse the
+    # veth-pair setup that the default bridge driver does.
     exec docker run --rm \
         --platform "$PLATFORM" \
+        --network=host \
         -v "$PROJECT_DIR:/work" -w /work \
         -e DNSB_IN_CROSS_CONTAINER=1 \
         -e ARCH="$ARCH" \
@@ -121,6 +125,11 @@ export OUTPUT="DNS-Benchmark-$ARCH.AppImage"
 # linuxdeploy refuses to run as root unless we tell it that's OK; required
 # inside the cross-build container which runs as root by default.
 export APPIMAGE_EXTRACT_AND_RUN=1
+# Bleeding-edge distros (Arch, Manjaro, Fedora rawhide) ship binaries with
+# the .relr.dyn relocation section, which linuxdeploy's bundled `strip`
+# (older binutils) cannot read. Skipping strip makes the AppImage a few
+# MB larger but lets it build on any host.
+export NO_STRIP=true
 
 echo ">> Running linuxdeploy (bundles GTK 3 + transitive .so deps)"
 "$LINUXDEPLOY" --appdir "$APPDIR" \
