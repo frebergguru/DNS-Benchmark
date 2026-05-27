@@ -58,11 +58,22 @@ static void draw_chart_to(cairo_t *cr, GtkTreeModel *model, double lock_scale,
 
     int n = row_count(model);
     if (n == 0) {
+        /* Centered empty-state with a friendly hint. */
         use_rgb(cr, t->fg_dim, 1.0);
+        cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+        cairo_set_font_size(cr, 16);
+        const char *msg = "No resolvers loaded";
+        cairo_text_extents_t te;
+        cairo_text_extents(cr, msg, &te);
+        cairo_move_to(cr, (width - te.width) / 2.0, 60);
+        cairo_show_text(cr, msg);
+
         cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_ITALIC, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(cr, 14);
-        cairo_move_to(cr, 16, 32);
-        cairo_show_text(cr, "No resolvers loaded.");
+        cairo_set_font_size(cr, 11);
+        const char *hint = "Use the Add button (Ctrl+N) or edit data/resolvers_default.tsv";
+        cairo_text_extents(cr, hint, &te);
+        cairo_move_to(cr, (width - te.width) / 2.0, 80);
+        cairo_show_text(cr, hint);
         return;
     }
 
@@ -74,19 +85,48 @@ static void draw_chart_to(cairo_t *cr, GtkTreeModel *model, double lock_scale,
     int chart_w = chart_right - chart_left;
     if (chart_w < 50) chart_w = 50;
 
-    /* Tick guide line. */
+    /* Top guide line. */
     use_rgb(cr, t->fg_dim, 0.4);
     cairo_set_line_width(cr, 1.0);
     cairo_move_to(cr, chart_left, top_pad - 2);
     cairo_line_to(cr, chart_right, top_pad - 2);
     cairo_stroke(cr);
 
+    /* Vertical gridlines at sensible intervals. */
+    double tick_step = 10.0;
+    while (tick_step * 10 < max_ms) tick_step *= 2;
+    if (tick_step < 5)  tick_step = 5;
+    /* No more than ~8 gridlines: aim for that. */
+    while (max_ms / tick_step > 8) tick_step *= 2;
+
+    int row_count_for_grid = n;
+    int chart_bottom = top_pad + row_count_for_grid * ROW_HEIGHT;
+    use_rgb(cr, t->fg_dim, 0.18);
+    cairo_set_line_width(cr, 1.0);
+    for (double v = tick_step; v < max_ms; v += tick_step) {
+        double x = chart_left + (v / max_ms) * chart_w;
+        cairo_move_to(cr, x, top_pad - 2);
+        cairo_line_to(cr, x, chart_bottom);
+        cairo_stroke(cr);
+    }
+
+    /* Axis labels at top: 0 ms, mid tick, max ms. */
     use_rgb(cr, t->fg_dim, 1.0);
     cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, 9);
     cairo_text_extents_t te;
     cairo_move_to(cr, chart_left, top_pad - 6);
     cairo_show_text(cr, "0 ms");
+    /* mid tick label so it's clear gridlines aren't equispaced visually */
+    char midbuf[24];
+    double mid = tick_step * (int)(max_ms / (2 * tick_step));
+    if (mid >= tick_step) {
+        snprintf(midbuf, sizeof(midbuf), "%g ms", mid);
+        cairo_text_extents(cr, midbuf, &te);
+        double mx = chart_left + (mid / max_ms) * chart_w;
+        cairo_move_to(cr, mx - te.width / 2, top_pad - 6);
+        cairo_show_text(cr, midbuf);
+    }
     char buf[32];
     snprintf(buf, sizeof(buf), "%.0f ms", max_ms);
     cairo_text_extents(cr, buf, &te);

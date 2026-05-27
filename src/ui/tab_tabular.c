@@ -146,6 +146,67 @@ static void add_func_col(GtkTreeView *tv, const char *title, int sort_col,
     gtk_tree_view_append_column(tv, c);
 }
 
+/* Context-menu actions on the right-click target row. */
+static void copy_address_to_clipboard(GtkTreeView *tv) {
+    GtkTreeSelection *sel = gtk_tree_view_get_selection(tv);
+    GtkTreeModel *m = NULL;
+    GtkTreeIter it;
+    if (!gtk_tree_selection_get_selected(sel, &m, &it)) return;
+    gchar *addr = NULL;
+    gtk_tree_model_get(m, &it, DNSB_COL_ADDRESS, &addr, -1);
+    if (addr && *addr) {
+        GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+        gtk_clipboard_set_text(cb, addr, -1);
+    }
+    g_free(addr);
+}
+
+static void toggle_pin_selected(GtkTreeView *tv) {
+    GtkTreeSelection *sel = gtk_tree_view_get_selection(tv);
+    GtkTreeModel *sort_model = NULL;
+    GtkTreeIter sort_it;
+    if (!gtk_tree_selection_get_selected(sel, &sort_model, &sort_it)) return;
+    GtkTreeIter child_it;
+    gtk_tree_model_sort_convert_iter_to_child_iter(GTK_TREE_MODEL_SORT(sort_model),
+                                                    &child_it, &sort_it);
+    GtkTreeModel *child = gtk_tree_model_sort_get_model(GTK_TREE_MODEL_SORT(sort_model));
+    gboolean cur = FALSE;
+    gtk_tree_model_get(child, &child_it, DNSB_COL_PINNED, &cur, -1);
+    gtk_list_store_set(GTK_LIST_STORE(child), &child_it, DNSB_COL_PINNED, !cur, -1);
+}
+
+static void on_ctx_copy(GtkMenuItem *m, gpointer data) { (void)m; copy_address_to_clipboard(GTK_TREE_VIEW(data)); }
+static void on_ctx_pin (GtkMenuItem *m, gpointer data) { (void)m; toggle_pin_selected(GTK_TREE_VIEW(data));     }
+
+static gboolean on_tv_button_press(GtkWidget *widget, GdkEventButton *evt, gpointer data) {
+    (void)data;
+    if (evt->type != GDK_BUTTON_PRESS || evt->button != GDK_BUTTON_SECONDARY) return FALSE;
+
+    /* Select the row under the cursor so the context menu acts on it. */
+    GtkTreeView *tv = GTK_TREE_VIEW(widget);
+    GtkTreePath *path = NULL;
+    if (gtk_tree_view_get_path_at_pos(tv, (int)evt->x, (int)evt->y,
+                                       &path, NULL, NULL, NULL)) {
+        gtk_tree_selection_select_path(gtk_tree_view_get_selection(tv), path);
+        gtk_tree_path_free(path);
+    } else {
+        return FALSE;
+    }
+
+    GtkWidget *menu = gtk_menu_new();
+    GtkWidget *m_pin  = gtk_menu_item_new_with_label(_("Toggle pin"));
+    GtkWidget *m_copy = gtk_menu_item_new_with_label(_("Copy address"));
+    g_signal_connect(m_pin,  "activate", G_CALLBACK(on_ctx_pin),  widget);
+    g_signal_connect(m_copy, "activate", G_CALLBACK(on_ctx_copy), widget);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), m_pin);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), m_copy);
+    gtk_widget_show_all(menu);
+    gtk_menu_popup_at_pointer(GTK_MENU(menu), (const GdkEvent *)evt);
+    /* Free the menu when it's dismissed. */
+    g_signal_connect(menu, "selection-done", G_CALLBACK(gtk_widget_destroy), NULL);
+    return TRUE;
+}
+
 GtkWidget *dnsb_tab_tabular_new(GtkTreeModel *model) {
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
@@ -154,6 +215,7 @@ GtkWidget *dnsb_tab_tabular_new(GtkTreeModel *model) {
     GtkWidget *tv = gtk_tree_view_new_with_model(model);
     gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tv), TRUE);
     gtk_tree_view_set_grid_lines(GTK_TREE_VIEW(tv), GTK_TREE_VIEW_GRID_LINES_HORIZONTAL);
+    g_signal_connect(tv, "button-press-event", G_CALLBACK(on_tv_button_press), NULL);
 
     add_pin_col(GTK_TREE_VIEW(tv), model);
     add_text_col(GTK_TREE_VIEW(tv), _("Name"),      DNSB_COL_NAME,      160);

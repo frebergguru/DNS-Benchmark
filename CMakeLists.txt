@@ -97,6 +97,7 @@ add_executable(dnsbenchmark
     src/ui/tab_nameservers.c
     src/ui/tab_tabular.c
     src/ui/tab_conclusions.c
+    src/ui/tab_help.c
     src/ui/chart.c
 )
 target_link_libraries(dnsbenchmark PRIVATE dnsb_core PkgConfig::GTK3)

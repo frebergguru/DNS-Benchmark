@@ -5,6 +5,7 @@
 #include "tab_nameservers.h"
 #include "tab_tabular.h"
 #include "tab_conclusions.h"
+#include "tab_help.h"
 #include "theme.h"
 
 #include "../engine/engine.h"
@@ -134,26 +135,48 @@ static gchar *build_conclusion_text(dnsb_engine *eng) {
     }
 
     GString *s = g_string_new(NULL);
-    g_string_append(s, _("Benchmark complete.\n\n"));
+    g_string_append(s, "<span size='x-large' weight='bold'>");
+    g_string_append(s, _("Benchmark complete"));
+    g_string_append(s, "</span>\n\n");
+
     g_string_append_printf(s,
-        _("Resolvers tested: %zu (responsive: %d, sidelined: %d, intercepting bad domains: %d)\n\n"),
+        _("<b>%zu</b> resolvers tested  ·  "
+          "<span foreground='#22aa44'>%d responsive</span>  ·  "
+          "<span foreground='#999999'>%d sidelined</span>  ·  "
+          "<span foreground='#cc7722'>%d redirectors</span>\n\n"),
         n, ok, sidelined, redirectors);
 
-    if (best_c_name)
+    if (best_c_name || best_u_name) {
+        g_string_append(s, "<b>");
+        g_string_append(s, _("Winners"));
+        g_string_append(s, "</b>\n");
+    }
+    if (best_c_name) {
+        char *esc_name = g_markup_escape_text(best_c_name, -1);
+        char *esc_addr = g_markup_escape_text(best_c_addr, -1);
         g_string_append_printf(s,
-            _("Fastest cached lookups: %s (%s) — %.2f ms average\n"),
-            best_c_name, best_c_addr, best_c);
-
-    if (best_u_name)
+            _("  🥇 <span foreground='#cc3333'>Cached</span>:   <b>%s</b> "
+              "<span foreground='#888888'>(%s)</span>  —  %.2f ms avg\n"),
+            esc_name, esc_addr, best_c);
+        g_free(esc_name); g_free(esc_addr);
+    }
+    if (best_u_name) {
+        char *esc_name = g_markup_escape_text(best_u_name, -1);
+        char *esc_addr = g_markup_escape_text(best_u_addr, -1);
         g_string_append_printf(s,
-            _("Fastest uncached lookups: %s (%s) — %.2f ms average\n"),
-            best_u_name, best_u_addr, best_u);
+            _("  🥇 <span foreground='#22aa44'>Uncached</span>: <b>%s</b> "
+              "<span foreground='#888888'>(%s)</span>  —  %.2f ms avg\n"),
+            esc_name, esc_addr, best_u);
+        g_free(esc_name); g_free(esc_addr);
+    }
 
+    g_string_append(s, "\n<b>");
+    g_string_append(s, _("Notes"));
+    g_string_append(s, "</b>\n");
     g_string_append(s, _(
-        "\nNotes:\n"
-        " • Cached numbers are the most predictive of everyday browsing experience.\n"
-        " • Resolvers in the redirector category should be avoided — they hijack invalid names.\n"
-        " • Re-run several times; one snapshot is noisy.\n"));
+        "  • Cached numbers best predict everyday browsing.\n"
+        "  • Avoid <span foreground='#cc7722'>orange-flagged</span> redirectors — they hijack invalid names.\n"
+        "  • Re-run several times; one snapshot is noisy.\n"));
 
     return g_string_free(s, FALSE);
 }
@@ -237,6 +260,30 @@ static gboolean ui_refresh_cb(gpointer data) {
 
     if (dnsb_engine_is_running(w->engine)) {
         update_progress_ui(w);
+        /* Live "best so far" summary above the chart. Skipped if too few
+           samples landed yet to avoid showing a spurious leader. */
+        size_t n = dnsb_engine_resolver_count(w->engine);
+        double best_c = 1e9; const char *best_c_name = NULL;
+        for (size_t i = 0; i < n; i++) {
+            dnsb_resolver *r = dnsb_engine_resolver_at(w->engine, i);
+            g_mutex_lock(&r->stats_mutex);
+            int ns = (int)dnsb_stats_count(&r->cached);
+            double m = dnsb_stats_mean(&r->cached);
+            g_mutex_unlock(&r->stats_mutex);
+            if (ns >= 3 && m > 0 && m < best_c) {
+                best_c = m;
+                best_c_name = r->name;
+            }
+        }
+        if (best_c_name) {
+            char esc_buf[256];
+            char *esc = g_markup_escape_text(best_c_name, -1);
+            g_snprintf(esc_buf, sizeof(esc_buf),
+                _("<b>Running.</b>  Best so far: <b>%s</b> — %.2f ms cached avg"),
+                esc, best_c);
+            dnsb_tab_nameservers_set_summary(&w->ns_tab, esc_buf);
+            g_free(esc);
+        }
     } else {
         gtk_widget_set_sensitive(w->run_btn, TRUE);
         gtk_widget_set_sensitive(w->stop_btn, FALSE);
@@ -311,7 +358,10 @@ static void on_run_clicked(GtkButton *btn, gpointer data) {
         gtk_widget_set_sensitive(w->run_btn, TRUE);
         gtk_widget_set_sensitive(w->stop_btn, FALSE);
         gtk_widget_set_sensitive(w->save_btn, TRUE);
+        return;
     }
+    /* Auto-switch to the Nameservers tab so the user sees the chart fill in. */
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(w->notebook), 1);
 }
 
 static void on_stop_clicked(GtkButton *btn, gpointer data) {
@@ -403,34 +453,101 @@ static void on_clone_clicked(GtkButton *btn, gpointer data) {
     gtk_widget_show_all(win);
 }
 
+typedef struct {
+    GtkWidget *port_spin;
+    GtkWidget *host_entry;
+    GtkWidget *host_label;
+} add_dlg_widgets;
+
+static void on_transport_changed(GtkComboBox *combo, gpointer data) {
+    add_dlg_widgets *w = data;
+    int idx = gtk_combo_box_get_active(combo);
+    int port = (idx == DNSB_TRANSPORT_DOT) ? 853
+             : (idx == DNSB_TRANSPORT_DOH) ? 443
+             : 53;
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(w->port_spin), port);
+    /* Hostname only matters for DoH (URL) and DoT (SNI/cert). Grey out for
+       UDP/TCP so users don't think they have to fill it. */
+    gboolean needs_host = (idx == DNSB_TRANSPORT_DOH || idx == DNSB_TRANSPORT_DOT);
+    gtk_widget_set_sensitive(w->host_entry, needs_host);
+    gtk_widget_set_sensitive(w->host_label, needs_host);
+}
+
+static const char *transport_code(int idx) {
+    switch (idx) {
+        case DNSB_TRANSPORT_TCP: return "tcp";
+        case DNSB_TRANSPORT_DOH: return "doh";
+        case DNSB_TRANSPORT_DOT: return "dot";
+        default:                 return "udp";
+    }
+}
+
 static void on_add_clicked(GtkButton *btn, gpointer data) {
     dnsb_window *w = data;
     GtkWidget *dlg = gtk_dialog_new_with_buttons(
         _("Add resolver"), GTK_WINDOW(w->root), GTK_DIALOG_MODAL,
         _("_Cancel"), GTK_RESPONSE_CANCEL,
         _("_Add"),    GTK_RESPONSE_ACCEPT, NULL);
+    gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_ACCEPT);
+
     GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
     GtkWidget *grid = gtk_grid_new();
-    gtk_grid_set_row_spacing(GTK_GRID(grid), 8);
-    gtk_grid_set_column_spacing(GTK_GRID(grid), 8);
-    gtk_widget_set_margin_top(grid, 12);
-    gtk_widget_set_margin_bottom(grid, 12);
-    gtk_widget_set_margin_start(grid, 12);
-    gtk_widget_set_margin_end(grid, 12);
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
+    gtk_widget_set_margin_top(grid, 14);
+    gtk_widget_set_margin_bottom(grid, 14);
+    gtk_widget_set_margin_start(grid, 16);
+    gtk_widget_set_margin_end(grid, 16);
 
     GtkWidget *e_name  = gtk_entry_new();
     GtkWidget *e_owner = gtk_entry_new();
     GtkWidget *e_addr  = gtk_entry_new();
+    GtkWidget *e_host  = gtk_entry_new();
+    GtkWidget *transport_combo = gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(transport_combo), "UDP");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(transport_combo), "TCP");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(transport_combo), _("DoH (HTTPS)"));
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(transport_combo), _("DoT (TLS)"));
+    gtk_combo_box_set_active(GTK_COMBO_BOX(transport_combo), 0);
+
+    GtkAdjustment *adj_port = gtk_adjustment_new(53, 1, 65535, 1, 100, 0);
+    GtkWidget *port_spin = gtk_spin_button_new(adj_port, 1, 0);
+
     gtk_entry_set_placeholder_text(GTK_ENTRY(e_name),  _("e.g. My Router"));
     gtk_entry_set_placeholder_text(GTK_ENTRY(e_owner), _("e.g. Home"));
-    gtk_entry_set_placeholder_text(GTK_ENTRY(e_addr),  _("e.g. 192.168.1.1"));
+    gtk_entry_set_placeholder_text(GTK_ENTRY(e_addr),  _("e.g. 192.168.1.1 or 2606:4700:4700::1111"));
+    gtk_entry_set_placeholder_text(GTK_ENTRY(e_host),  _("e.g. cloudflare-dns.com (optional)"));
 
-    gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Name")),    0, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), e_name,                      1, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Owner")),   0, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), e_owner,                     1, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Address")), 0, 2, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), e_addr,                      1, 2, 1, 1);
+    gtk_widget_set_tooltip_text(e_addr,
+        _("IPv4 or IPv6 literal. For DoH/DoT the request still goes to this IP; the hostname field controls cert validation."));
+    gtk_widget_set_tooltip_text(e_host,
+        _("Hostname for cert verification (DoT) or HTTPS URL (DoH). Optional — defaults to the IP if blank, which only works when the resolver's certificate covers its IP."));
+
+    GtkWidget *l_host = gtk_label_new(_("Hostname"));
+    gtk_label_set_xalign(GTK_LABEL(l_host), 0.0);
+
+    int row = 0;
+    GtkWidget *labels[] = {
+        gtk_label_new(_("Name")),
+        gtk_label_new(_("Owner")),
+        gtk_label_new(_("Address")),
+        gtk_label_new(_("Transport")),
+        gtk_label_new(_("Port")),
+        l_host,
+    };
+    GtkWidget *fields[] = { e_name, e_owner, e_addr, transport_combo, port_spin, e_host };
+    for (int i = 0; i < 6; i++) {
+        gtk_label_set_xalign(GTK_LABEL(labels[i]), 0.0);
+        gtk_grid_attach(GTK_GRID(grid), labels[i], 0, row, 1, 1);
+        gtk_grid_attach(GTK_GRID(grid), fields[i], 1, row, 1, 1);
+        gtk_widget_set_hexpand(fields[i], TRUE);
+        row++;
+    }
+
+    add_dlg_widgets ctx = { .port_spin = port_spin, .host_entry = e_host, .host_label = l_host };
+    g_signal_connect(transport_combo, "changed", G_CALLBACK(on_transport_changed), &ctx);
+    /* Trigger once to set the host-field sensitivity for the default UDP. */
+    on_transport_changed(GTK_COMBO_BOX(transport_combo), &ctx);
 
     gtk_container_add(GTK_CONTAINER(content), grid);
     gtk_widget_show_all(dlg);
@@ -439,24 +556,29 @@ static void on_add_clicked(GtkButton *btn, gpointer data) {
         const char *name  = gtk_entry_get_text(GTK_ENTRY(e_name));
         const char *owner = gtk_entry_get_text(GTK_ENTRY(e_owner));
         const char *addr  = gtk_entry_get_text(GTK_ENTRY(e_addr));
+        const char *host  = gtk_entry_get_text(GTK_ENTRY(e_host));
+        int tidx = gtk_combo_box_get_active(GTK_COMBO_BOX(transport_combo));
+        int port = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(port_spin));
+
         if (name && *name && addr && *addr) {
             dnsb_resolver *r = g_new0(dnsb_resolver, 1);
-            r->name  = g_strdup(name);
-            r->owner = g_strdup(owner ? owner : "");
-            r->addr  = g_strdup(addr);
-            r->transport = DNSB_TRANSPORT_UDP;
-            r->port = 53;
+            r->name     = g_strdup(name);
+            r->owner    = g_strdup(owner ? owner : "");
+            r->addr     = g_strdup(addr);
+            r->hostname = (host && *host) ? g_strdup(host) : NULL;
+            r->transport = (dnsb_transport_kind)tidx;
+            r->port = port;
             if (dnsb_engine_add_resolver(w->engine, r) == 0) {
                 GtkTreeIter it;
                 gtk_list_store_append(w->store, &it);
                 gtk_list_store_set(w->store, &it,
-                    DNSB_COL_NAME,        r->name,
-                    DNSB_COL_OWNER,       r->owner,
-                    DNSB_COL_ADDRESS,     r->addr,
-                    DNSB_COL_TRANSPORT,   "udp",
-                    DNSB_COL_STATUS,      0,
-                    DNSB_COL_SYSTEM,      FALSE,
-                    DNSB_COL_PINNED,      FALSE,
+                    DNSB_COL_NAME,         r->name,
+                    DNSB_COL_OWNER,        r->owner,
+                    DNSB_COL_ADDRESS,      r->addr,
+                    DNSB_COL_TRANSPORT,    transport_code(tidx),
+                    DNSB_COL_STATUS,       0,
+                    DNSB_COL_SYSTEM,       FALSE,
+                    DNSB_COL_PINNED,       FALSE,
                     DNSB_COL_ENGINE_INDEX, (int)(dnsb_engine_resolver_count(w->engine) - 1),
                     -1);
                 int idx = (int)(dnsb_engine_resolver_count(w->engine) - 1);
@@ -465,7 +587,14 @@ static void on_add_clicked(GtkButton *btn, gpointer data) {
                 w->row_for_resolver_n = idx + 1;
                 dnsb_chart_redraw(w->ns_tab.chart);
             } else {
-                g_free(r->name); g_free(r->owner); g_free(r->addr); g_free(r);
+                g_free(r->name); g_free(r->owner); g_free(r->addr); g_free(r->hostname); g_free(r);
+
+                /* Show an error toast so the user knows the address didn't parse. */
+                GtkWidget *err = gtk_message_dialog_new(GTK_WINDOW(w->root),
+                    GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK,
+                    "%s", _("Could not parse that address. Use an IPv4 or IPv6 literal (no hostname)."));
+                gtk_dialog_run(GTK_DIALOG(err));
+                gtk_widget_destroy(err);
             }
         }
     }
@@ -581,49 +710,94 @@ static void on_theme_clicked(GtkButton *btn, gpointer data) {
     update_theme_button_label(w);
 }
 
+static GtkWidget *labeled_row(GtkGrid *grid, int row, const char *text,
+                              const char *tooltip, GtkWidget *control) {
+    GtkWidget *l = gtk_label_new(text);
+    gtk_label_set_xalign(GTK_LABEL(l), 0.0);
+    gtk_widget_set_hexpand(l, TRUE);
+    if (tooltip) {
+        gtk_widget_set_tooltip_text(l, tooltip);
+        gtk_widget_set_tooltip_text(control, tooltip);
+    }
+    gtk_grid_attach(grid, l,       0, row, 1, 1);
+    gtk_grid_attach(grid, control, 1, row, 1, 1);
+    return control;
+}
+
+static GtkWidget *framed(const char *title, GtkWidget *inner) {
+    GtkWidget *frame = gtk_frame_new(NULL);
+    GtkWidget *lbl = gtk_label_new(NULL);
+    char buf[64];
+    g_snprintf(buf, sizeof(buf), "<b>%s</b>", title);
+    gtk_label_set_markup(GTK_LABEL(lbl), buf);
+    gtk_frame_set_label_widget(GTK_FRAME(frame), lbl);
+    gtk_frame_set_label_align(GTK_FRAME(frame), 0.02, 0.5);
+    gtk_widget_set_margin_top(inner, 4);
+    gtk_widget_set_margin_bottom(inner, 8);
+    gtk_widget_set_margin_start(inner, 12);
+    gtk_widget_set_margin_end(inner, 12);
+    gtk_container_add(GTK_CONTAINER(frame), inner);
+    return frame;
+}
+
 static void on_settings_clicked(GtkButton *btn, gpointer data) {
     dnsb_window *w = data;
     GtkWidget *dlg = gtk_dialog_new_with_buttons(
         _("Settings"), GTK_WINDOW(w->root), GTK_DIALOG_MODAL,
         _("_Cancel"), GTK_RESPONSE_CANCEL,
         _("_Apply"),  GTK_RESPONSE_ACCEPT, NULL);
-    GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
-    GtkWidget *grid = gtk_grid_new();
-    gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
-    gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
-    gtk_widget_set_margin_top(grid, 12);
-    gtk_widget_set_margin_bottom(grid, 12);
-    gtk_widget_set_margin_start(grid, 12);
-    gtk_widget_set_margin_end(grid, 12);
+    gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_ACCEPT);
 
-    dnsb_engine_config cfg = dnsb_engine_default_config();
-    (void)cfg;
+    GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
+    GtkWidget *outer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+    gtk_widget_set_margin_top(outer, 14);
+    gtk_widget_set_margin_bottom(outer, 14);
+    gtk_widget_set_margin_start(outer, 16);
+    gtk_widget_set_margin_end(outer, 16);
+
+    /* === Sampling group === */
+    GtkWidget *gx1 = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(gx1), 8);
+    gtk_grid_set_column_spacing(GTK_GRID(gx1), 12);
 
     GtkAdjustment *adj_q = gtk_adjustment_new(50, 5, 5000, 5, 25, 0);
     GtkAdjustment *adj_s = gtk_adjustment_new(20, 0, 1000, 5, 25, 0);
     GtkAdjustment *adj_t = gtk_adjustment_new(1500, 100, 10000, 100, 500, 0);
     GtkAdjustment *adj_c = gtk_adjustment_new(32, 1, 500, 1, 8, 0);
-
     GtkWidget *spin_q = gtk_spin_button_new(adj_q, 1, 0);
     GtkWidget *spin_s = gtk_spin_button_new(adj_s, 1, 0);
     GtkWidget *spin_t = gtk_spin_button_new(adj_t, 1, 0);
     GtkWidget *spin_c = gtk_spin_button_new(adj_c, 1, 0);
-    GtkWidget *chk_redirect = gtk_check_button_new_with_label(_("Probe redirection (NXDOMAIN test)"));
+
+    labeled_row(GTK_GRID(gx1), 0, _("Query-sets per resolver"),
+        _("Number of cached + uncached + .com triples timed per resolver. Higher = more accurate, slower."),
+        spin_q);
+    labeled_row(GTK_GRID(gx1), 1, _("Spacing (ms)"),
+        _("Delay between query-sets on a single resolver. Higher values reduce burst pressure on the link."),
+        spin_s);
+    labeled_row(GTK_GRID(gx1), 2, _("Timeout (ms)"),
+        _("Per-query wall-clock cap. After this a query counts as a failure."),
+        spin_t);
+    labeled_row(GTK_GRID(gx1), 3, _("Concurrency"),
+        _("Max worker threads. One worker handles one resolver at a time; extras queue."),
+        spin_c);
+
+    gtk_box_pack_start(GTK_BOX(outer), framed(_("Sampling"), gx1), FALSE, FALSE, 0);
+
+    /* === Probes group === */
+    GtkWidget *probes = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    GtkWidget *chk_redirect = gtk_check_button_new_with_label(_("Probe redirection (NXDOMAIN hijack test)"));
     GtkWidget *chk_dnssec   = gtk_check_button_new_with_label(_("Probe DNSSEC (sets DO bit — some resolvers misbehave)"));
+    gtk_widget_set_tooltip_text(chk_redirect,
+        _("After the main loop, query a random .invalid name. Resolvers returning an A record (instead of NXDOMAIN) get the orange flag."));
+    gtk_widget_set_tooltip_text(chk_dnssec,
+        _("After the main loop, ask for a known signed domain with the DO bit set and check the AD flag in the reply. Off by default because the DO bit makes a handful of broken resolvers refuse to answer at all."));
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(chk_redirect), TRUE);
+    gtk_box_pack_start(GTK_BOX(probes), chk_redirect, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(probes), chk_dnssec,   FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(outer), framed(_("Probes"), probes), FALSE, FALSE, 0);
 
-    gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Query-sets per resolver")), 0, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), spin_q,                                      1, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Spacing (ms)")),            0, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), spin_s,                                      1, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Timeout (ms)")),            0, 2, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), spin_t,                                      1, 2, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), gtk_label_new(_("Concurrency")),             0, 3, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), spin_c,                                      1, 3, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), chk_redirect,                                0, 4, 2, 1);
-    gtk_grid_attach(GTK_GRID(grid), chk_dnssec,                                  0, 5, 2, 1);
-
-    gtk_container_add(GTK_CONTAINER(content), grid);
+    gtk_container_add(GTK_CONTAINER(content), outer);
     gtk_widget_show_all(dlg);
 
     if (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_ACCEPT) {
@@ -680,6 +854,67 @@ static void populate_store_from_engine(dnsb_window *w) {
             DNSB_COL_ENGINE_INDEX, (int)i,
             -1);
         w->row_for_resolver[i] = (int)i;
+    }
+}
+
+/* GAction handlers route keyboard accelerators back into the existing
+   button click callbacks so behavior stays in one place. */
+static void action_run(GSimpleAction *a, GVariant *p, gpointer data) {
+    (void)a; (void)p;
+    dnsb_window *w = data;
+    if (gtk_widget_get_sensitive(w->run_btn)) on_run_clicked(GTK_BUTTON(w->run_btn), w);
+}
+static void action_stop(GSimpleAction *a, GVariant *p, gpointer data) {
+    (void)a; (void)p;
+    dnsb_window *w = data;
+    if (gtk_widget_get_sensitive(w->stop_btn)) on_stop_clicked(GTK_BUTTON(w->stop_btn), w);
+}
+static void action_save_csv(GSimpleAction *a, GVariant *p, gpointer data) {
+    (void)a; (void)p;
+    dnsb_window *w = data;
+    if (gtk_widget_get_sensitive(w->save_btn)) on_save_clicked(GTK_BUTTON(w->save_btn), w);
+}
+static void action_settings(GSimpleAction *a, GVariant *p, gpointer data) {
+    (void)a; (void)p;
+    dnsb_window *w = data;
+    on_settings_clicked(GTK_BUTTON(w->settings_btn), w);
+}
+static void action_help(GSimpleAction *a, GVariant *p, gpointer data) {
+    (void)a; (void)p;
+    dnsb_window *w = data;
+    /* Help is the last tab (Introduction=0, Nameservers=1, Tabular=2,
+       Conclusions=3, Help=4). */
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(w->notebook), 4);
+}
+static void action_add(GSimpleAction *a, GVariant *p, gpointer data) {
+    (void)a; (void)p;
+    dnsb_window *w = data;
+    on_add_clicked(NULL, w);
+}
+
+static const GActionEntry win_actions[] = {
+    { "run",      action_run,      NULL, NULL, NULL, {0} },
+    { "stop",     action_stop,     NULL, NULL, NULL, {0} },
+    { "save-csv", action_save_csv, NULL, NULL, NULL, {0} },
+    { "settings", action_settings, NULL, NULL, NULL, {0} },
+    { "help",     action_help,     NULL, NULL, NULL, {0} },
+    { "add",      action_add,      NULL, NULL, NULL, {0} },
+};
+
+static void install_shortcuts(GtkApplication *app, dnsb_window *w) {
+    g_action_map_add_action_entries(G_ACTION_MAP(w->root),
+                                     win_actions, G_N_ELEMENTS(win_actions), w);
+    struct { const char *action; const char *accel; } binds[] = {
+        { "win.run",      "<Control>r"      },
+        { "win.stop",     "<Control>period" },
+        { "win.save-csv", "<Control>s"      },
+        { "win.settings", "<Control>comma"  },
+        { "win.add",      "<Control>n"      },
+        { "win.help",     "F1"              },
+    };
+    for (size_t i = 0; i < G_N_ELEMENTS(binds); i++) {
+        const char *a[] = { binds[i].accel, NULL };
+        gtk_application_set_accels_for_action(app, binds[i].action, a);
     }
 }
 
@@ -746,6 +981,16 @@ dnsb_window *dnsb_window_new(GtkApplication *app, dnsb_engine *engine, const cha
     gtk_header_bar_pack_end  (GTK_HEADER_BAR(header), clone_btn);
     gtk_header_bar_pack_end  (GTK_HEADER_BAR(header), add_btn);
     update_theme_button_label(w);
+    install_shortcuts(app, w);
+
+    /* Tooltips with accelerator hints. */
+    gtk_widget_set_tooltip_markup(w->run_btn,      _("Start benchmark  <b>(Ctrl+R)</b>"));
+    gtk_widget_set_tooltip_markup(w->stop_btn,     _("Stop benchmark  <b>(Ctrl+.)</b>"));
+    gtk_widget_set_tooltip_markup(w->save_btn,     _("Save results to CSV  <b>(Ctrl+S)</b>"));
+    gtk_widget_set_tooltip_markup(add_btn,         _("Add a custom resolver  <b>(Ctrl+N)</b>"));
+    gtk_widget_set_tooltip_markup(w->settings_btn, _("Settings  <b>(Ctrl+,)</b>"));
+    gtk_widget_set_tooltip_text(png_btn,   _("Save the chart as a PNG image"));
+    gtk_widget_set_tooltip_text(clone_btn, _("Open a frozen snapshot of the current results in a new window"));
 
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
@@ -786,6 +1031,7 @@ dnsb_window *dnsb_window_new(GtkApplication *app, dnsb_engine *engine, const cha
     GtkWidget *tabular_root = dnsb_tab_tabular_new(tabular_sort);
     w->conc_tab = dnsb_tab_conclusions_new();
 
+    GtkWidget *help = dnsb_tab_help_new();
     gtk_notebook_append_page(GTK_NOTEBOOK(w->notebook), intro,
                              gtk_label_new(_("Introduction")));
     gtk_notebook_append_page(GTK_NOTEBOOK(w->notebook), w->ns_tab.root,
@@ -794,8 +1040,11 @@ dnsb_window *dnsb_window_new(GtkApplication *app, dnsb_engine *engine, const cha
                              gtk_label_new(_("Tabular Data")));
     gtk_notebook_append_page(GTK_NOTEBOOK(w->notebook), w->conc_tab.root,
                              gtk_label_new(_("Conclusions")));
-    /* Start on Nameservers since it’s the main workspace. */
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(w->notebook), 1);
+    gtk_notebook_append_page(GTK_NOTEBOOK(w->notebook), help,
+                             gtk_label_new(_("Help")));
+    /* Start on Introduction so first-time users see the orientation text.
+       Clicking Run automatically pivots to the Nameservers tab. */
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(w->notebook), 0);
 
     gtk_box_pack_start(GTK_BOX(vbox), w->notebook, TRUE, TRUE, 0);
 
@@ -804,6 +1053,9 @@ dnsb_window *dnsb_window_new(GtkApplication *app, dnsb_engine *engine, const cha
     dnsb_engine_set_callback(w->engine, on_engine_event, w);
 
     gtk_widget_show_all(win);
+    /* Land focus on the Run button so Enter starts a benchmark immediately
+       and no other widget shows a focus rectangle on launch. */
+    gtk_widget_grab_focus(w->run_btn);
     return w;
 }
 

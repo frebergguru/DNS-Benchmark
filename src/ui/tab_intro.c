@@ -12,7 +12,7 @@ GtkWidget *dnsb_tab_intro_new(void) {
     gtk_label_set_yalign(GTK_LABEL(label), 0.0);
     gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
     gtk_label_set_max_width_chars(GTK_LABEL(label), 80);
-    gtk_label_set_selectable(GTK_LABEL(label), TRUE);
+    gtk_label_set_selectable(GTK_LABEL(label), FALSE);
     gtk_widget_set_margin_top(label, 16);
     gtk_widget_set_margin_bottom(label, 16);
     gtk_widget_set_margin_start(label, 24);
