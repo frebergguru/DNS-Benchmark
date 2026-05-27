@@ -146,7 +146,14 @@ int main(int argc, char **argv) {
     st.data_dir = resolve_data_dir();
     DNSB_INFO("data dir: %s", st.data_dir);
 
+    /* G_APPLICATION_DEFAULT_FLAGS replaced G_APPLICATION_FLAGS_NONE in
+       GLib 2.74. Pick the right one based on the GLib we're compiling
+       against so neither modern nor Ubuntu-22.04 (GLib 2.72) builds warn. */
+#if GLIB_CHECK_VERSION(2, 74, 0)
     GtkApplication *app = gtk_application_new("guru.freberg.DNSBenchmark", G_APPLICATION_DEFAULT_FLAGS);
+#else
+    GtkApplication *app = gtk_application_new("guru.freberg.DNSBenchmark", G_APPLICATION_FLAGS_NONE);
+#endif
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), &st);
     int rc = g_application_run(G_APPLICATION(app), argc, argv);
     g_object_unref(app);
