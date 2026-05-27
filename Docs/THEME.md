@@ -28,7 +28,7 @@ stay perceptually distinct on both backgrounds:
 ## Cycle
 
 The `◐` button cycles `auto → dark → light → auto`. Persisted to
-`~/.config/dnsbenchmark/theme`. In `auto`, dark is chosen unless
+`~/.config/DNS-Benchmark/theme`. In `auto`, dark is chosen unless
 `GTK_THEME` contains `dark` or `DNSB_PREFER_DARK=1` is set in the env.
 
 ## How widgets pick up the theme

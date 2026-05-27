@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
     st.data_dir = resolve_data_dir();
     DNSB_INFO("data dir: %s", st.data_dir);
 
-    GtkApplication *app = gtk_application_new("org.dnsbenchmark.app", G_APPLICATION_DEFAULT_FLAGS);
+    GtkApplication *app = gtk_application_new("guru.freberg.DNSBenchmark", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), &st);
     int rc = g_application_run(G_APPLICATION(app), argc, argv);
     g_object_unref(app);

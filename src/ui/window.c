@@ -328,7 +328,7 @@ static void on_save_clicked(GtkButton *btn, gpointer data) {
         _("_Cancel"), GTK_RESPONSE_CANCEL,
         _("_Save"),   GTK_RESPONSE_ACCEPT, NULL);
     gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dlg), TRUE);
-    gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dlg), "dnsbenchmark.csv");
+    gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dlg), "DNS-Benchmark.csv");
 
     if (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_ACCEPT) {
         char *path = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dlg));
@@ -350,7 +350,7 @@ static void on_save_png_clicked(GtkButton *btn, gpointer data) {
         _("_Cancel"), GTK_RESPONSE_CANCEL,
         _("_Save"),   GTK_RESPONSE_ACCEPT, NULL);
     gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dlg), TRUE);
-    gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dlg), "dnsbenchmark.png");
+    gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dlg), "DNS-Benchmark.png");
 
     if (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_ACCEPT) {
         char *path = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dlg));

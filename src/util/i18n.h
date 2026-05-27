@@ -3,7 +3,7 @@
 
 #include <libintl.h>
 
-#define DNSB_GETTEXT_PACKAGE "dnsbenchmark"
+#define DNSB_GETTEXT_PACKAGE "DNS-Benchmark"
 
 /* Mark a string for runtime translation. */
 #define _(s)  gettext(s)

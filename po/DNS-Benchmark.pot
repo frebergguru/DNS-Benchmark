@@ -1,0 +1,378 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR DNS-Benchmark contributors
+# This file is distributed under the same license as the DNS-Benchmark package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: DNS-Benchmark 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-27 15:13+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/ui/tab_conclusions.c:22
+msgid "Conclusions will appear here after a benchmark run completes.\n"
+msgstr ""
+
+#: src/ui/tab_intro.c:22
+msgid ""
+"<span size='x-large' weight='bold'>DNS Benchmark</span>\n"
+"\n"
+"This tool measures the performance and reliability of DNS resolvers by "
+"timing <b>cached</b>, <b>uncached</b>, and <b>.com</b> lookups against each "
+"server.\n"
+"\n"
+"<b>Before you start</b>\n"
+"  • Close bandwidth-heavy apps. Other traffic on your link will inflate "
+"response times and skew results.\n"
+"  • Run the benchmark several times across the day; a single run is a "
+"snapshot, not a verdict.\n"
+"  • The first run does no real work — it just primes each resolver’s cache. "
+"The reported cached numbers come from subsequent queries.\n"
+"\n"
+"<b>How to read the results</b>\n"
+"  • <span foreground='#cc3333'>Red</span> bar = cached lookup (the most "
+"common case).\n"
+"  • <span foreground='#22aa44'>Green</span> bar = uncached lookup (recursive "
+"walk).\n"
+"  • <span foreground='#7755bb'>Purple</span> bar = .com TLD lookup.\n"
+"  • <b>Status dots:</b> filled = currently configured on this machine; green "
+"= healthy; red = unresponsive; orange = redirects bad domains to ads.\n"
+"\n"
+"<b>Tabs</b>\n"
+"  • <b>Nameservers</b> — the main view: live bar chart + status list.\n"
+"  • <b>Tabular Data</b> — every measurement in a sortable table.\n"
+"  • <b>Conclusions</b> — ranked recommendation after the run.\n"
+"\n"
+"Use the toolbar above to start, stop, save results, or add custom resolvers."
+msgstr ""
+
+#: src/ui/tab_nameservers.c:17
+msgid "<i>Press <b>Run</b> in the toolbar to start benchmarking.</i>"
+msgstr ""
+
+#: src/ui/tab_nameservers.c:36
+msgid ""
+"<span foreground='#cc3333'>■</span> cached  <span foreground='#22aa44'>■</"
+"span> uncached  <span foreground='#7755bb'>■</span> .com    <span "
+"foreground='#999999'>●</span> filled = system-configured, hollow = available"
+msgstr ""
+
+#: src/ui/tab_tabular.c:75
+msgid "yes"
+msgstr ""
+
+#: src/ui/tab_tabular.c:86
+msgid "● ok"
+msgstr ""
+
+#: src/ui/tab_tabular.c:86
+msgid "○ ok"
+msgstr ""
+
+#: src/ui/tab_tabular.c:87
+msgid "● fail"
+msgstr ""
+
+#: src/ui/tab_tabular.c:87
+msgid "○ fail"
+msgstr ""
+
+#: src/ui/tab_tabular.c:88
+msgid "● redirect"
+msgstr ""
+
+#: src/ui/tab_tabular.c:88
+msgid "○ redirect"
+msgstr ""
+
+#: src/ui/tab_tabular.c:89
+msgid "sidelined"
+msgstr ""
+
+#: src/ui/tab_tabular.c:90
+msgid "● idle"
+msgstr ""
+
+#: src/ui/tab_tabular.c:90
+msgid "○ idle"
+msgstr ""
+
+#: src/ui/tab_tabular.c:120
+msgid "Pin"
+msgstr ""
+
+#: src/ui/tab_tabular.c:159 src/ui/window.c:428
+msgid "Name"
+msgstr ""
+
+#: src/ui/tab_tabular.c:160 src/ui/window.c:430
+msgid "Owner"
+msgstr ""
+
+#: src/ui/tab_tabular.c:161 src/ui/window.c:432
+msgid "Address"
+msgstr ""
+
+#: src/ui/tab_tabular.c:162
+msgid "Transport"
+msgstr ""
+
+#: src/ui/tab_tabular.c:163
+msgid "Status"
+msgstr ""
+
+#: src/ui/tab_tabular.c:164
+msgid "Cached ms"
+msgstr ""
+
+#: src/ui/tab_tabular.c:165
+msgid "Uncached ms"
+msgstr ""
+
+#: src/ui/tab_tabular.c:166
+msgid ".com ms"
+msgstr ""
+
+#: src/ui/tab_tabular.c:167
+msgid "Reliability"
+msgstr ""
+
+#: src/ui/tab_tabular.c:168
+msgid "Sent"
+msgstr ""
+
+#: src/ui/tab_tabular.c:169
+msgid "OK"
+msgstr ""
+
+#: src/ui/tab_tabular.c:170
+msgid "Redirects"
+msgstr ""
+
+#: src/ui/tab_tabular.c:171
+msgid "DNSSEC"
+msgstr ""
+
+#: src/ui/window.c:137
+msgid ""
+"Benchmark complete.\n"
+"\n"
+msgstr ""
+
+#: src/ui/window.c:139
+#, c-format
+msgid ""
+"Resolvers tested: %zu (responsive: %d, sidelined: %d, intercepting bad "
+"domains: %d)\n"
+"\n"
+msgstr ""
+
+#: src/ui/window.c:144
+#, c-format
+msgid "Fastest cached lookups: %s (%s) — %.2f ms average\n"
+msgstr ""
+
+#: src/ui/window.c:149
+#, c-format
+msgid "Fastest uncached lookups: %s (%s) — %.2f ms average\n"
+msgstr ""
+
+#: src/ui/window.c:153
+msgid ""
+"\n"
+"Notes:\n"
+" • Cached numbers are the most predictive of everyday browsing experience.\n"
+" • Resolvers in the redirector category should be avoided — they hijack "
+"invalid names.\n"
+" • Re-run several times; one snapshot is noisy.\n"
+msgstr ""
+
+#: src/ui/window.c:212
+#, c-format
+msgid "Finishing…  %zu/%zu resolvers"
+msgstr ""
+
+#: src/ui/window.c:221
+#, c-format
+msgid "%.1f%%  %zu/%zu resolvers  ·  ETA %s"
+msgstr ""
+
+#: src/ui/window.c:224
+#, c-format
+msgid "%.1f%%  %zu/%zu resolvers  ·  estimating…"
+msgstr ""
+
+#: src/ui/window.c:227
+#, c-format
+msgid "Starting…  %zu/%zu resolvers"
+msgstr ""
+
+#: src/ui/window.c:253
+#, c-format
+msgid "Done in %s"
+msgstr ""
+
+#: src/ui/window.c:257
+msgid "Idle"
+msgstr ""
+
+#: src/ui/window.c:304
+msgid "Starting…"
+msgstr ""
+
+#: src/ui/window.c:307
+msgid "<b>Benchmark running.</b> Sit tight — results update live."
+msgstr ""
+
+#: src/ui/window.c:326
+msgid "Save results as CSV"
+msgstr ""
+
+#: src/ui/window.c:328 src/ui/window.c:350 src/ui/window.c:410
+#: src/ui/window.c:588
+msgid "_Cancel"
+msgstr ""
+
+#: src/ui/window.c:329 src/ui/window.c:351
+msgid "_Save"
+msgstr ""
+
+#: src/ui/window.c:348
+msgid "Save chart as PNG"
+msgstr ""
+
+#: src/ui/window.c:390
+msgid "DNS Benchmark — snapshot"
+msgstr ""
+
+#: src/ui/window.c:398 src/ui/window.c:792
+msgid "Nameservers"
+msgstr ""
+
+#: src/ui/window.c:399 src/ui/window.c:794
+msgid "Tabular Data"
+msgstr ""
+
+#: src/ui/window.c:409
+msgid "Add resolver"
+msgstr ""
+
+#: src/ui/window.c:411
+msgid "_Add"
+msgstr ""
+
+#: src/ui/window.c:424
+msgid "e.g. My Router"
+msgstr ""
+
+#: src/ui/window.c:425
+msgid "e.g. Home"
+msgstr ""
+
+#: src/ui/window.c:426
+msgid "e.g. 192.168.1.1"
+msgstr ""
+
+#: src/ui/window.c:479
+msgid "◐ dark"
+msgstr ""
+
+#: src/ui/window.c:480
+msgid "◑ light"
+msgstr ""
+
+#: src/ui/window.c:481 src/ui/window.c:723
+msgid "◐ auto"
+msgstr ""
+
+#: src/ui/window.c:523
+msgid "Change language"
+msgstr ""
+
+#: src/ui/window.c:532
+msgid "Auto (system)"
+msgstr ""
+
+#: src/ui/window.c:559
+msgid "<small>Applies immediately. A running benchmark will stop.</small>"
+msgstr ""
+
+#: src/ui/window.c:587 src/ui/window.c:722
+msgid "Settings"
+msgstr ""
+
+#: src/ui/window.c:589
+msgid "_Apply"
+msgstr ""
+
+#: src/ui/window.c:611
+msgid "Probe redirection (NXDOMAIN test)"
+msgstr ""
+
+#: src/ui/window.c:612
+msgid "Probe DNSSEC (sets DO bit — some resolvers misbehave)"
+msgstr ""
+
+#: src/ui/window.c:615
+msgid "Query-sets per resolver"
+msgstr ""
+
+#: src/ui/window.c:617
+msgid "Spacing (ms)"
+msgstr ""
+
+#: src/ui/window.c:619
+msgid "Timeout (ms)"
+msgstr ""
+
+#: src/ui/window.c:621
+msgid "Concurrency"
+msgstr ""
+
+#: src/ui/window.c:703 src/ui/window.c:712
+msgid "DNS Benchmark"
+msgstr ""
+
+#: src/ui/window.c:716
+msgid "Run"
+msgstr ""
+
+#: src/ui/window.c:717
+msgid "Stop"
+msgstr ""
+
+#: src/ui/window.c:718
+msgid "Save CSV"
+msgstr ""
+
+#: src/ui/window.c:719
+msgid "Save PNG"
+msgstr ""
+
+#: src/ui/window.c:720
+msgid "Clone"
+msgstr ""
+
+#: src/ui/window.c:721
+msgid "Add"
+msgstr ""
+
+#: src/ui/window.c:724
+msgid "Cycle theme: auto → dark → light"
+msgstr ""
+
+#: src/ui/window.c:790
+msgid "Introduction"
+msgstr ""
+
+#: src/ui/window.c:796
+msgid "Conclusions"
+msgstr ""
