@@ -49,6 +49,12 @@ struct dnsb_window {
     /* Run timing for progress + ETA. */
     uint64_t run_start_ns;
     double   smoothed_eta_sec;
+
+    /* Set when a benchmark is in flight; the next refresh that observes
+       "engine not running" pivots to the Conclusions tab and clears it.
+       Without this flag every refresh at idle (e.g. at first launch) would
+       pull focus to Conclusions. */
+    int      pending_conclusions_jump;
 };
 
 static int find_row_for_index(dnsb_window *w, int engine_idx, GtkTreeIter *out_iter) {
@@ -292,6 +298,12 @@ static gboolean ui_refresh_cb(gpointer data) {
         dnsb_tab_conclusions_set_text(&w->conc_tab, t);
         g_free(t);
 
+        if (w->pending_conclusions_jump) {
+            w->pending_conclusions_jump = 0;
+            /* Conclusions = page 3 (Intro=0, NS=1, Tabular=2, Conc=3, Help=4). */
+            gtk_notebook_set_current_page(GTK_NOTEBOOK(w->notebook), 3);
+        }
+
         /* Show final elapsed time if a run actually executed. */
         if (w->run_start_ns) {
             char buf[64], dur[32];
@@ -362,6 +374,9 @@ static void on_run_clicked(GtkButton *btn, gpointer data) {
     }
     /* Auto-switch to the Nameservers tab so the user sees the chart fill in. */
     gtk_notebook_set_current_page(GTK_NOTEBOOK(w->notebook), 1);
+    /* Arm the post-run jump: when ui_refresh_cb next observes the engine
+       has gone idle, it pivots to Conclusions. */
+    w->pending_conclusions_jump = 1;
 }
 
 static void on_stop_clicked(GtkButton *btn, gpointer data) {
