@@ -8,3 +8,8 @@ compile_commands.json
 .vscode/
 .idea/
 *.swp
+
+# AppImage release artefacts (built by scripts/build-appimage.sh)
+.appimage-tools/
+*.AppImage
+*.AppImage.sha256
