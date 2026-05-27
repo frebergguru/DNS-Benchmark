@@ -85,6 +85,10 @@ size_t       dnsb_engine_resolver_count(const dnsb_engine *eng);
 dnsb_resolver *dnsb_engine_resolver_at(dnsb_engine *eng, size_t i);
 
 int          dnsb_engine_start(dnsb_engine *eng);
+/* Like dnsb_engine_start, but does not reset per-resolver stats. Use to
+   accumulate additional samples on top of a completed run (e.g. the
+   "Re-run a few times" multi-run mode). */
+int          dnsb_engine_continue(dnsb_engine *eng);
 void         dnsb_engine_stop(dnsb_engine *eng);
 int          dnsb_engine_is_running(dnsb_engine *eng);
 

@@ -25,6 +25,7 @@ struct dnsb_window {
     GtkListStore *store;
     GtkWidget *notebook;
     GtkWidget *run_btn;
+    GtkWidget *runs_combo;        /* "1×" / "3×" / "5×" / "10×" multi-run selector */
     GtkWidget *stop_btn;
     GtkWidget *save_btn;
     GtkWidget *settings_btn;
@@ -49,6 +50,13 @@ struct dnsb_window {
     /* Run timing for progress + ETA. */
     uint64_t run_start_ns;
     double   smoothed_eta_sec;
+
+    /* Multi-run mode: do N back-to-back iterations, accumulating samples,
+       so users get a less-noisy result without manually clicking Run again.
+       total_runs is captured from the dropdown at click time so changing
+       the selection mid-run does nothing. current_run is 1-based. */
+    int total_runs;
+    int current_run;
 
     /* Set when a benchmark is in flight; the next refresh that observes
        "engine not running" pivots to the Conclusions tab and clears it.
@@ -193,7 +201,7 @@ static gchar *build_conclusion_text(dnsb_engine *eng) {
     g_string_append(s, _(
         "  • Cached numbers best predict everyday browsing.\n"
         "  • Avoid <span foreground='#cc7722'>orange-flagged</span> redirectors — they hijack invalid names.\n"
-        "  • Re-run several times; one snapshot is noisy.\n"));
+        "  • Re-run a few times — single runs are noisy.\n"));
 
     g_free(best_c_name);
     g_free(best_c_addr);
@@ -249,11 +257,19 @@ static void update_progress_ui(dnsb_window *w) {
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(w->progress_bar), progress);
 
     double elapsed = (dnsb_now_ns() - w->run_start_ns) / 1.0e9;
-    char text[160];
+    char text[192];
+
+    /* Prefix shown only in multi-run mode (N > 1). One run is the common
+       case and the prefix would just be noise. */
+    char run_prefix[32] = "";
+    if (w->total_runs > 1) {
+        snprintf(run_prefix, sizeof(run_prefix), _("Run %d/%d  ·  "),
+                 w->current_run, w->total_runs);
+    }
 
     if (progress >= 1.0) {
         snprintf(text, sizeof(text),
-                 _("Finishing…  %zu/%zu resolvers"), done, n);
+                 _("%sFinishing…  %zu/%zu resolvers"), run_prefix, done, n);
     } else if (elapsed >= 3.0 && progress >= 0.05) {
         /* Linear extrapolation, then EMA-smoothed so spikes when a batch
            of resolvers finishes don't make the readout flicker. */
@@ -262,13 +278,13 @@ static void update_progress_ui(dnsb_window *w) {
         else w->smoothed_eta_sec = 0.70 * w->smoothed_eta_sec + 0.30 * raw_eta;
         char eta_buf[32];
         format_duration(w->smoothed_eta_sec, eta_buf, sizeof(eta_buf));
-        snprintf(text, sizeof(text), _("%.1f%%  %zu/%zu resolvers  ·  ETA %s"),
-                 progress * 100.0, done, n, eta_buf);
+        snprintf(text, sizeof(text), _("%s%.1f%%  %zu/%zu resolvers  ·  ETA %s"),
+                 run_prefix, progress * 100.0, done, n, eta_buf);
     } else if (progress > 0.0) {
-        snprintf(text, sizeof(text), _("%.1f%%  %zu/%zu resolvers  ·  estimating…"),
-                 progress * 100.0, done, n);
+        snprintf(text, sizeof(text), _("%s%.1f%%  %zu/%zu resolvers  ·  estimating…"),
+                 run_prefix, progress * 100.0, done, n);
     } else {
-        snprintf(text, sizeof(text), _("Starting…  %zu/%zu resolvers"), done, n);
+        snprintf(text, sizeof(text), _("%sStarting…  %zu/%zu resolvers"), run_prefix, done, n);
     }
     gtk_progress_bar_set_text(GTK_PROGRESS_BAR(w->progress_bar), text);
 }
@@ -306,9 +322,28 @@ static gboolean ui_refresh_cb(gpointer data) {
             g_free(esc);
         }
     } else {
+        /* Multi-run chain: if the user picked N>1 runs and we still have
+           iterations left, kick off the next one (engine_continue keeps
+           accumulated samples) and stay in the "running" UI state. */
+        if (w->current_run < w->total_runs) {
+            w->current_run++;
+            if (dnsb_engine_continue(w->engine) == 0) {
+                gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(w->progress_bar), 0.0);
+                char buf[64];
+                snprintf(buf, sizeof(buf), _("Run %d of %d — starting…"),
+                         w->current_run, w->total_runs);
+                gtk_progress_bar_set_text(GTK_PROGRESS_BAR(w->progress_bar), buf);
+                return G_SOURCE_REMOVE;
+            }
+            /* engine_continue failed; fall through and finalise as a normal
+               run end so the UI doesn't get stuck in a half-running state. */
+            DNSB_ERROR("engine_continue failed mid-chain");
+        }
+
         gtk_widget_set_sensitive(w->run_btn, TRUE);
         gtk_widget_set_sensitive(w->stop_btn, FALSE);
         gtk_widget_set_sensitive(w->save_btn, TRUE);
+        if (w->runs_combo) gtk_widget_set_sensitive(w->runs_combo, TRUE);
         gchar *t = build_conclusion_text(w->engine);
         dnsb_tab_conclusions_set_text(&w->conc_tab, t);
         g_free(t);
@@ -321,10 +356,15 @@ static gboolean ui_refresh_cb(gpointer data) {
 
         /* Show final elapsed time if a run actually executed. */
         if (w->run_start_ns) {
-            char buf[64], dur[32];
+            char buf[96], dur[32];
             double elapsed = (dnsb_now_ns() - w->run_start_ns) / 1.0e9;
             format_duration(elapsed, dur, sizeof(dur));
-            snprintf(buf, sizeof(buf), _("Done in %s"), dur);
+            if (w->total_runs > 1) {
+                snprintf(buf, sizeof(buf), _("Done in %s  ·  %d runs"),
+                         dur, w->total_runs);
+            } else {
+                snprintf(buf, sizeof(buf), _("Done in %s"), dur);
+            }
             gtk_progress_bar_set_text(GTK_PROGRESS_BAR(w->progress_bar), buf);
             gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(w->progress_bar), 1.0);
         } else {
@@ -373,8 +413,18 @@ static void on_run_clicked(GtkButton *btn, gpointer data) {
     gtk_widget_set_sensitive(w->run_btn, FALSE);
     gtk_widget_set_sensitive(w->stop_btn, TRUE);
     gtk_widget_set_sensitive(w->save_btn, FALSE);
+    if (w->runs_combo) gtk_widget_set_sensitive(w->runs_combo, FALSE);
     w->run_start_ns = dnsb_now_ns();
     w->smoothed_eta_sec = 0.0;
+
+    /* Snapshot the multi-run selection now so changing the dropdown
+       mid-run can't perturb the chain. */
+    int sel = w->runs_combo ? gtk_combo_box_get_active(GTK_COMBO_BOX(w->runs_combo)) : 0;
+    static const int runs_choices[] = { 1, 3, 5, 10 };
+    if (sel < 0 || sel >= (int)(sizeof(runs_choices)/sizeof(runs_choices[0]))) sel = 0;
+    w->total_runs   = runs_choices[sel];
+    w->current_run  = 1;
+
     gtk_progress_bar_set_text(GTK_PROGRESS_BAR(w->progress_bar), _("Starting…"));
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(w->progress_bar), 0.0);
     dnsb_tab_nameservers_set_summary(&w->ns_tab, _(
@@ -385,6 +435,7 @@ static void on_run_clicked(GtkButton *btn, gpointer data) {
         gtk_widget_set_sensitive(w->run_btn, TRUE);
         gtk_widget_set_sensitive(w->stop_btn, FALSE);
         gtk_widget_set_sensitive(w->save_btn, TRUE);
+        if (w->runs_combo) gtk_widget_set_sensitive(w->runs_combo, TRUE);
         return;
     }
     /* Auto-switch to the Nameservers tab so the user sees the chart fill in. */
@@ -396,6 +447,9 @@ static void on_run_clicked(GtkButton *btn, gpointer data) {
 
 static void on_stop_clicked(GtkButton *btn, gpointer data) {
     dnsb_window *w = data;
+    /* Break out of any pending multi-run chain so ui_refresh_cb doesn't
+       fire another iteration after the cancelled one completes. */
+    w->total_runs = w->current_run;
     dnsb_engine_stop(w->engine);
     /* Must go through the same throttle as on_engine_event — otherwise the
        second ui_refresh_cb queued by the RUN_DONE event survives the single
@@ -981,6 +1035,8 @@ dnsb_window *dnsb_window_new(GtkApplication *app, dnsb_engine *engine, const cha
     w->engine = engine;
     w->data_dir = g_strdup(data_dir ? data_dir : "");
     atomic_init(&w->idle_pending, 0);
+    w->total_runs  = 1;
+    w->current_run = 1;
 
     w->store = new_list_store();
 
@@ -1006,6 +1062,15 @@ dnsb_window *dnsb_window_new(GtkApplication *app, dnsb_engine *engine, const cha
     gtk_header_bar_set_has_subtitle(GTK_HEADER_BAR(header), TRUE);
 
     w->run_btn  = gtk_button_new_with_label(_("Run"));
+    /* Multi-run selector. Order must match runs_choices[] in on_run_clicked. */
+    w->runs_combo = gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(w->runs_combo), _("1×"));
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(w->runs_combo), _("3×"));
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(w->runs_combo), _("5×"));
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(w->runs_combo), _("10×"));
+    gtk_combo_box_set_active(GTK_COMBO_BOX(w->runs_combo), 0);
+    gtk_widget_set_tooltip_text(w->runs_combo,
+        _("Re-run the benchmark this many times back-to-back. Samples accumulate, so the averages get less noisy with more runs."));
     w->stop_btn = gtk_button_new_with_label(_("Stop"));
     w->save_btn = gtk_button_new_with_label(_("Save CSV"));
     GtkWidget *png_btn   = gtk_button_new_with_label(_("Save PNG"));
@@ -1026,6 +1091,7 @@ dnsb_window *dnsb_window_new(GtkApplication *app, dnsb_engine *engine, const cha
     g_signal_connect(w->theme_btn,    "clicked", G_CALLBACK(on_theme_clicked),   w);
 
     gtk_header_bar_pack_start(GTK_HEADER_BAR(header), w->run_btn);
+    gtk_header_bar_pack_start(GTK_HEADER_BAR(header), w->runs_combo);
     gtk_header_bar_pack_start(GTK_HEADER_BAR(header), w->stop_btn);
     GtkWidget *lang_btn = build_lang_button(w);
     /* pack_end fills right-to-left, so theme_btn is rightmost and lang_btn

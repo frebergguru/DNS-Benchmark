@@ -440,26 +440,42 @@ static void worker_func(gpointer data, gpointer user_data) {
     }
 }
 
-int dnsb_engine_start(dnsb_engine *e) {
+static int engine_start_internal(dnsb_engine *e, int reset_stats) {
     if (atomic_load(&e->running)) return -1;
     if (e->resolvers.n == 0) return -1;
 
-    /* Reset all stats. The UI's refresh thread may be reading these even
-       though running=0 right now, and we're about to flip the running flag.
-       Resetting under the per-resolver lock keeps reads coherent. */
-    for (size_t i = 0; i < e->resolvers.n; i++) {
-        dnsb_resolver *r = e->resolvers.items[i];
-        g_mutex_lock(&r->stats_mutex);
-        dnsb_stats_reset(&r->cached);
-        dnsb_stats_reset(&r->uncached);
-        dnsb_stats_reset(&r->dotcom);
-        r->queries_sent = 0;
-        r->queries_ok = 0;
-        r->consecutive_fails = 0;
-        r->sidelined = 0;
-        r->redirects = 0;
-        r->dnssec_ok = 0;
-        g_mutex_unlock(&r->stats_mutex);
+    if (reset_stats) {
+        /* Reset all stats. The UI's refresh thread may be reading these even
+           though running=0 right now, and we're about to flip the running flag.
+           Resetting under the per-resolver lock keeps reads coherent. */
+        for (size_t i = 0; i < e->resolvers.n; i++) {
+            dnsb_resolver *r = e->resolvers.items[i];
+            g_mutex_lock(&r->stats_mutex);
+            dnsb_stats_reset(&r->cached);
+            dnsb_stats_reset(&r->uncached);
+            dnsb_stats_reset(&r->dotcom);
+            r->queries_sent = 0;
+            r->queries_ok = 0;
+            r->consecutive_fails = 0;
+            r->sidelined = 0;
+            r->redirects = 0;
+            r->dnssec_ok = 0;
+            g_mutex_unlock(&r->stats_mutex);
+        }
+    } else {
+        /* Continuing: keep accumulated samples but zero the per-iteration
+           progress counters so the UI progress bar starts fresh and the
+           sideline-streak detector doesn't carry stale state. The actual
+           sample buffers (cached/uncached/dotcom) are left intact, which is
+           the whole point of "continue" — more samples lower noise. */
+        for (size_t i = 0; i < e->resolvers.n; i++) {
+            dnsb_resolver *r = e->resolvers.items[i];
+            g_mutex_lock(&r->stats_mutex);
+            r->queries_sent = 0;
+            r->queries_ok = 0;
+            r->consecutive_fails = 0;
+            g_mutex_unlock(&r->stats_mutex);
+        }
     }
 
     atomic_store(&e->cancel, 0);
@@ -488,6 +504,9 @@ int dnsb_engine_start(dnsb_engine *e) {
     }
     return 0;
 }
+
+int dnsb_engine_start(dnsb_engine *e)    { return engine_start_internal(e, 1); }
+int dnsb_engine_continue(dnsb_engine *e) { return engine_start_internal(e, 0); }
 
 void dnsb_engine_stop(dnsb_engine *e) {
     if (!e) return;

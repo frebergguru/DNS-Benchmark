@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR dnsbenchmark contributors
-# This file is distributed under the same license as the dnsbenchmark package.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: dnsbenchmark 0.1.0\n"
+"Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-27 15:18+0200\n"
+"POT-Creation-Date: 2026-05-27 17:18+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,8 +17,83 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/ui/tab_conclusions.c:22
-msgid "Conclusions will appear here after a benchmark run completes.\n"
+#: src/ui/tab_nameservers.c:17
+msgid "<i>Press <b>Run</b> in the toolbar to start benchmarking.</i>"
+msgstr ""
+
+#: src/ui/tab_nameservers.c:36
+msgid ""
+"<span foreground='#cc3333'>■</span> cached  <span foreground='#22aa44'>■</"
+"span> uncached  <span foreground='#7755bb'>■</span> .com    <span "
+"foreground='#999999'>●</span> filled = system-configured, hollow = available"
+msgstr ""
+
+#: src/ui/tab_help.c:22
+msgid ""
+"<span size='x-large' weight='bold'>Help</span>\n"
+"\n"
+"<b>Keyboard shortcuts</b>\n"
+"  <tt>Ctrl+R</tt>    Run benchmark\n"
+"  <tt>Ctrl+.</tt>    Stop benchmark\n"
+"  <tt>Ctrl+N</tt>    Add custom resolver\n"
+"  <tt>Ctrl+S</tt>    Save results to CSV\n"
+"  <tt>Ctrl+,</tt>    Open Settings\n"
+"  <tt>F1</tt>         Open this Help tab\n"
+"  <tt>Alt+F4</tt>     Close the window\n"
+"\n"
+"<b>What each bar means</b>\n"
+"  <span foreground='#cc3333'>■</span>  <b>Cached</b> — repeat query for a "
+"popular domain. The resolver answers from its own cache. This is the case "
+"that dominates everyday browsing.\n"
+"  <span foreground='#22aa44'>■</span>  <b>Uncached</b> — fresh random "
+"subdomain. The resolver has to do a recursive walk all the way to the "
+"authoritative server.\n"
+"  <span foreground='#7755bb'>■</span>  <b>.com</b> — fresh random "
+"<tt>&lt;rand&gt;.com</tt>. Isolates the round-trip to the <tt>.com</tt> TLD "
+"servers.\n"
+"\n"
+"<b>Status dots</b>\n"
+"  <span foreground='#22aa44'>●</span> green   healthy, responding normally\n"
+"  <span foreground='#cc3333'>●</span> red     unresponsive or refusing "
+"queries\n"
+"  <span foreground='#cc7722'>●</span> orange  redirector — hijacks invalid "
+"names into A records\n"
+"  <span foreground='#888888'>●</span> grey    sidelined after too many "
+"failures\n"
+"  <span foreground='#cc8800'>●</span> filled  currently configured on your "
+"system\n"
+"  <span foreground='#cc8800'>○</span> hollow  available but not your current "
+"resolver\n"
+"  A yellow ring marks a resolver you've pinned.\n"
+"\n"
+"<b>Glossary</b>\n"
+"  <b>Resolver</b>    A DNS server you can ask names of. Examples: 1.1.1.1, "
+"8.8.8.8.\n"
+"  <b>Sidelined</b>   Stopped probing because 10 consecutive queries failed.\n"
+"  <b>Redirector</b> A resolver that returns a fake A record (typically an ad "
+"page) for names that should be NXDOMAIN.\n"
+"  <b>DNSSEC</b>     Cryptographic validation of DNS answers. The AD bit in a "
+"reply indicates the resolver verified signatures.\n"
+"  <b>DoH / DoT</b>  DNS over HTTPS / DNS over TLS — encrypted transports.\n"
+"  <b>ETA</b>        Estimated time remaining, shown after the first ~3 "
+"seconds and 5% progress so the early-stage extrapolation doesn't lie.\n"
+"\n"
+"<b>Tips</b>\n"
+"  • Close bandwidth-heavy apps before running — other traffic on your link "
+"inflates the timings.\n"
+"  • Run several times across the day. One run is a snapshot, not a verdict.\n"
+"  • Pin your current resolver (right-click in <b>Tabular Data</b>) so it "
+"stays at the top no matter how you sort.\n"
+"  • The <b>Clone</b> button takes a frozen snapshot you can compare against "
+"later runs.\n"
+"\n"
+"<b>Files this app writes</b>\n"
+"  <tt>~/.config/dnsbenchmark/theme</tt>   last-chosen theme (auto / dark / "
+"light)\n"
+"  <tt>~/.config/dnsbenchmark/lang</tt>    last-chosen language (auto / en / "
+"nb)\n"
+"\n"
+"<i>Project source and updates: github.com/frebergguru/DNS-Benchmark</i>"
 msgstr ""
 
 #: src/ui/tab_intro.c:22
@@ -54,325 +129,492 @@ msgid ""
 "Use the toolbar above to start, stop, save results, or add custom resolvers."
 msgstr ""
 
-#: src/ui/tab_nameservers.c:17
-msgid "<i>Press <b>Run</b> in the toolbar to start benchmarking.</i>"
-msgstr ""
-
-#: src/ui/tab_nameservers.c:36
+#: src/ui/tab_conclusions.c:26
 msgid ""
-"<span foreground='#cc3333'>■</span> cached  <span foreground='#22aa44'>■</"
-"span> uncached  <span foreground='#7755bb'>■</span> .com    <span "
-"foreground='#999999'>●</span> filled = system-configured, hollow = available"
+"<i>Conclusions will appear here after a benchmark run completes.</i>\n"
+"\n"
+"Press <b>Run</b> in the toolbar (or <b>Ctrl+R</b>) to start."
 msgstr ""
 
-#: src/ui/tab_tabular.c:75
+#: src/ui/tab_tabular.c:76
 msgid "yes"
 msgstr ""
 
-#: src/ui/tab_tabular.c:86
+#: src/ui/tab_tabular.c:87
 msgid "● ok"
 msgstr ""
 
-#: src/ui/tab_tabular.c:86
+#: src/ui/tab_tabular.c:87
 msgid "○ ok"
 msgstr ""
 
-#: src/ui/tab_tabular.c:87
+#: src/ui/tab_tabular.c:88
 msgid "● fail"
 msgstr ""
 
-#: src/ui/tab_tabular.c:87
+#: src/ui/tab_tabular.c:88
 msgid "○ fail"
 msgstr ""
 
-#: src/ui/tab_tabular.c:88
+#: src/ui/tab_tabular.c:89
 msgid "● redirect"
 msgstr ""
 
-#: src/ui/tab_tabular.c:88
+#: src/ui/tab_tabular.c:89
 msgid "○ redirect"
 msgstr ""
 
-#: src/ui/tab_tabular.c:89
+#: src/ui/tab_tabular.c:90
 msgid "sidelined"
 msgstr ""
 
-#: src/ui/tab_tabular.c:90
+#: src/ui/tab_tabular.c:91
 msgid "● idle"
 msgstr ""
 
-#: src/ui/tab_tabular.c:90
+#: src/ui/tab_tabular.c:91
 msgid "○ idle"
 msgstr ""
 
-#: src/ui/tab_tabular.c:120
+#: src/ui/tab_tabular.c:121
 msgid "Pin"
 msgstr ""
 
-#: src/ui/tab_tabular.c:159 src/ui/window.c:428
+#: src/ui/tab_tabular.c:198
+msgid "Toggle pin"
+msgstr ""
+
+#: src/ui/tab_tabular.c:199
+msgid "Copy address"
+msgstr ""
+
+#: src/ui/tab_tabular.c:222 src/ui/window.c:634
 msgid "Name"
 msgstr ""
 
-#: src/ui/tab_tabular.c:160 src/ui/window.c:430
+#: src/ui/tab_tabular.c:223 src/ui/window.c:635
 msgid "Owner"
 msgstr ""
 
-#: src/ui/tab_tabular.c:161 src/ui/window.c:432
+#: src/ui/tab_tabular.c:224 src/ui/window.c:636
 msgid "Address"
 msgstr ""
 
-#: src/ui/tab_tabular.c:162
+#: src/ui/tab_tabular.c:225 src/ui/window.c:637
 msgid "Transport"
 msgstr ""
 
-#: src/ui/tab_tabular.c:163
+#: src/ui/tab_tabular.c:226
 msgid "Status"
 msgstr ""
 
-#: src/ui/tab_tabular.c:164
+#: src/ui/tab_tabular.c:227
 msgid "Cached ms"
 msgstr ""
 
-#: src/ui/tab_tabular.c:165
+#: src/ui/tab_tabular.c:228
 msgid "Uncached ms"
 msgstr ""
 
-#: src/ui/tab_tabular.c:166
+#: src/ui/tab_tabular.c:229
 msgid ".com ms"
 msgstr ""
 
-#: src/ui/tab_tabular.c:167
+#: src/ui/tab_tabular.c:230
 msgid "Reliability"
 msgstr ""
 
-#: src/ui/tab_tabular.c:168
+#: src/ui/tab_tabular.c:231
 msgid "Sent"
 msgstr ""
 
-#: src/ui/tab_tabular.c:169
+#: src/ui/tab_tabular.c:232
 msgid "OK"
 msgstr ""
 
-#: src/ui/tab_tabular.c:170
+#: src/ui/tab_tabular.c:233
 msgid "Redirects"
 msgstr ""
 
-#: src/ui/tab_tabular.c:171
+#: src/ui/tab_tabular.c:234
 msgid "DNSSEC"
 msgstr ""
 
-#: src/ui/window.c:137
+#: src/ui/window.c:164
+msgid "Benchmark complete"
+msgstr ""
+
+#: src/ui/window.c:168
+#, c-format
 msgid ""
-"Benchmark complete.\n"
+"<b>%zu</b> resolvers tested  ·  <span foreground='#22aa44'>%d responsive</"
+"span>  ·  <span foreground='#999999'>%d sidelined</span>  ·  <span "
+"foreground='#cc7722'>%d redirectors</span>\n"
 "\n"
 msgstr ""
 
-#: src/ui/window.c:139
+#: src/ui/window.c:176
+msgid "Winners"
+msgstr ""
+
+#: src/ui/window.c:183
 #, c-format
 msgid ""
-"Resolvers tested: %zu (responsive: %d, sidelined: %d, intercepting bad "
-"domains: %d)\n"
-"\n"
+"  🥇 <span foreground='#cc3333'>Cached</span>:   <b>%s</b> <span "
+"foreground='#888888'>(%s)</span>  —  %.2f ms avg\n"
 msgstr ""
 
-#: src/ui/window.c:144
+#: src/ui/window.c:192
 #, c-format
-msgid "Fastest cached lookups: %s (%s) — %.2f ms average\n"
-msgstr ""
-
-#: src/ui/window.c:149
-#, c-format
-msgid "Fastest uncached lookups: %s (%s) — %.2f ms average\n"
-msgstr ""
-
-#: src/ui/window.c:153
 msgid ""
-"\n"
-"Notes:\n"
-" • Cached numbers are the most predictive of everyday browsing experience.\n"
-" • Resolvers in the redirector category should be avoided — they hijack "
-"invalid names.\n"
-" • Re-run several times; one snapshot is noisy.\n"
+"  🥇 <span foreground='#22aa44'>Uncached</span>: <b>%s</b> <span "
+"foreground='#888888'>(%s)</span>  —  %.2f ms avg\n"
 msgstr ""
 
-#: src/ui/window.c:212
+#: src/ui/window.c:199
+msgid "Notes"
+msgstr ""
+
+#: src/ui/window.c:202
+msgid ""
+"  • Cached numbers best predict everyday browsing.\n"
+"  • Avoid <span foreground='#cc7722'>orange-flagged</span> redirectors — "
+"they hijack invalid names.\n"
+"  • Re-run a few times — single runs are noisy.\n"
+msgstr ""
+
+#: src/ui/window.c:266
 #, c-format
-msgid "Finishing…  %zu/%zu resolvers"
+msgid "Run %d/%d  ·  "
 msgstr ""
 
-#: src/ui/window.c:221
+#: src/ui/window.c:272
 #, c-format
-msgid "%.1f%%  %zu/%zu resolvers  ·  ETA %s"
+msgid "%sFinishing…  %zu/%zu resolvers"
 msgstr ""
 
-#: src/ui/window.c:224
+#: src/ui/window.c:281
 #, c-format
-msgid "%.1f%%  %zu/%zu resolvers  ·  estimating…"
+msgid "%s%.1f%%  %zu/%zu resolvers  ·  ETA %s"
 msgstr ""
 
-#: src/ui/window.c:227
+#: src/ui/window.c:284
 #, c-format
-msgid "Starting…  %zu/%zu resolvers"
+msgid "%s%.1f%%  %zu/%zu resolvers  ·  estimating…"
 msgstr ""
 
-#: src/ui/window.c:253
+#: src/ui/window.c:287
+#, c-format
+msgid "%sStarting…  %zu/%zu resolvers"
+msgstr ""
+
+#: src/ui/window.c:319
+#, c-format
+msgid "<b>Running.</b>  Best so far: <b>%s</b> — %.2f ms cached avg"
+msgstr ""
+
+#: src/ui/window.c:333
+#, c-format
+msgid "Run %d of %d — starting…"
+msgstr ""
+
+#: src/ui/window.c:363
+#, c-format
+msgid "Done in %s  ·  %d runs"
+msgstr ""
+
+#: src/ui/window.c:366
 #, c-format
 msgid "Done in %s"
 msgstr ""
 
-#: src/ui/window.c:257
+#: src/ui/window.c:371
 msgid "Idle"
 msgstr ""
 
-#: src/ui/window.c:304
+#: src/ui/window.c:428
 msgid "Starting…"
 msgstr ""
 
-#: src/ui/window.c:307
+#: src/ui/window.c:431
 msgid "<b>Benchmark running.</b> Sit tight — results update live."
 msgstr ""
 
-#: src/ui/window.c:326
+#: src/ui/window.c:464
 msgid "Save results as CSV"
 msgstr ""
 
-#: src/ui/window.c:328 src/ui/window.c:350 src/ui/window.c:410
-#: src/ui/window.c:588
+#: src/ui/window.c:466 src/ui/window.c:488 src/ui/window.c:592
+#: src/ui/window.c:851
 msgid "_Cancel"
 msgstr ""
 
-#: src/ui/window.c:329 src/ui/window.c:351
+#: src/ui/window.c:467 src/ui/window.c:489
 msgid "_Save"
 msgstr ""
 
-#: src/ui/window.c:348
+#: src/ui/window.c:486
 msgid "Save chart as PNG"
 msgstr ""
 
-#: src/ui/window.c:390
+#: src/ui/window.c:528
 msgid "DNS Benchmark — snapshot"
 msgstr ""
 
-#: src/ui/window.c:398 src/ui/window.c:792
+#: src/ui/window.c:548 src/ui/window.c:1166
 msgid "Nameservers"
 msgstr ""
 
-#: src/ui/window.c:399 src/ui/window.c:794
+#: src/ui/window.c:549 src/ui/window.c:1168
 msgid "Tabular Data"
 msgstr ""
 
-#: src/ui/window.c:409
+#: src/ui/window.c:591
 msgid "Add resolver"
 msgstr ""
 
-#: src/ui/window.c:411
+#: src/ui/window.c:593
 msgid "_Add"
 msgstr ""
 
-#: src/ui/window.c:424
-msgid "e.g. My Router"
-msgstr ""
-
-#: src/ui/window.c:425
-msgid "e.g. Home"
-msgstr ""
-
-#: src/ui/window.c:426
-msgid "e.g. 192.168.1.1"
-msgstr ""
-
-#: src/ui/window.c:479
-msgid "◐ dark"
-msgstr ""
-
-#: src/ui/window.c:480
-msgid "◑ light"
-msgstr ""
-
-#: src/ui/window.c:481 src/ui/window.c:723
-msgid "◐ auto"
-msgstr ""
-
-#: src/ui/window.c:523
-msgid "Change language"
-msgstr ""
-
-#: src/ui/window.c:532
-msgid "Auto (system)"
-msgstr ""
-
-#: src/ui/window.c:559
-msgid "<small>Applies immediately. A running benchmark will stop.</small>"
-msgstr ""
-
-#: src/ui/window.c:587 src/ui/window.c:722
-msgid "Settings"
-msgstr ""
-
-#: src/ui/window.c:589
-msgid "_Apply"
-msgstr ""
-
-#: src/ui/window.c:611
-msgid "Probe redirection (NXDOMAIN test)"
-msgstr ""
-
 #: src/ui/window.c:612
-msgid "Probe DNSSEC (sets DO bit — some resolvers misbehave)"
+msgid "DoH (HTTPS)"
 msgstr ""
 
-#: src/ui/window.c:615
-msgid "Query-sets per resolver"
-msgstr ""
-
-#: src/ui/window.c:617
-msgid "Spacing (ms)"
+#: src/ui/window.c:613
+msgid "DoT (TLS)"
 msgstr ""
 
 #: src/ui/window.c:619
-msgid "Timeout (ms)"
+msgid "e.g. My Router"
+msgstr ""
+
+#: src/ui/window.c:620
+msgid "e.g. Home"
 msgstr ""
 
 #: src/ui/window.c:621
+msgid "e.g. 192.168.1.1 or 2606:4700:4700::1111"
+msgstr ""
+
+#: src/ui/window.c:622
+msgid "e.g. cloudflare-dns.com (optional)"
+msgstr ""
+
+#: src/ui/window.c:625
+msgid ""
+"IPv4 or IPv6 literal. For DoH/DoT the request still goes to this IP; the "
+"hostname field controls cert validation."
+msgstr ""
+
+#: src/ui/window.c:627
+msgid ""
+"Hostname for cert verification (DoT) or HTTPS URL (DoH). Optional — defaults "
+"to the IP if blank, which only works when the resolver's certificate covers "
+"its IP."
+msgstr ""
+
+#: src/ui/window.c:629
+msgid "Hostname"
+msgstr ""
+
+#: src/ui/window.c:638
+msgid "Port"
+msgstr ""
+
+#: src/ui/window.c:698
+msgid ""
+"Could not parse that address. Use an IPv4 or IPv6 literal (no hostname)."
+msgstr ""
+
+#: src/ui/window.c:711
+msgid "◐ dark"
+msgstr ""
+
+#: src/ui/window.c:712
+msgid "◑ light"
+msgstr ""
+
+#: src/ui/window.c:713 src/ui/window.c:1080
+msgid "◐ auto"
+msgstr ""
+
+#: src/ui/window.c:756
+msgid "Change language"
+msgstr ""
+
+#: src/ui/window.c:765
+msgid "Auto (system)"
+msgstr ""
+
+#: src/ui/window.c:792
+msgid "<small>Applies immediately. A running benchmark will stop.</small>"
+msgstr ""
+
+#: src/ui/window.c:850 src/ui/window.c:1079
+msgid "Settings"
+msgstr ""
+
+#: src/ui/window.c:852
+msgid "_Apply"
+msgstr ""
+
+#: src/ui/window.c:880
+msgid "Query-sets per resolver"
+msgstr ""
+
+#: src/ui/window.c:881
+msgid ""
+"Number of cached + uncached + .com triples timed per resolver. Higher = more "
+"accurate, slower."
+msgstr ""
+
+#: src/ui/window.c:883
+msgid "Spacing (ms)"
+msgstr ""
+
+#: src/ui/window.c:884
+msgid ""
+"Delay between query-sets on a single resolver. Higher values reduce burst "
+"pressure on the link."
+msgstr ""
+
+#: src/ui/window.c:886
+msgid "Timeout (ms)"
+msgstr ""
+
+#: src/ui/window.c:887
+msgid "Per-query wall-clock cap. After this a query counts as a failure."
+msgstr ""
+
+#: src/ui/window.c:889
 msgid "Concurrency"
 msgstr ""
 
-#: src/ui/window.c:703 src/ui/window.c:712
+#: src/ui/window.c:890
+msgid ""
+"Max worker threads. One worker handles one resolver at a time; extras queue."
+msgstr ""
+
+#: src/ui/window.c:893
+msgid "Sampling"
+msgstr ""
+
+#: src/ui/window.c:897
+msgid "Probe redirection (NXDOMAIN hijack test)"
+msgstr ""
+
+#: src/ui/window.c:898
+msgid "Probe DNSSEC (sets DO bit — some resolvers misbehave)"
+msgstr ""
+
+#: src/ui/window.c:900
+msgid ""
+"After the main loop, query a random .invalid name. Resolvers returning an A "
+"record (instead of NXDOMAIN) get the orange flag."
+msgstr ""
+
+#: src/ui/window.c:902
+msgid ""
+"After the main loop, ask for a known signed domain with the DO bit set and "
+"check the AD flag in the reply. Off by default because the DO bit makes a "
+"handful of broken resolvers refuse to answer at all."
+msgstr ""
+
+#: src/ui/window.c:907
+msgid "Probes"
+msgstr ""
+
+#: src/ui/window.c:1051 src/ui/window.c:1060
 msgid "DNS Benchmark"
 msgstr ""
 
-#: src/ui/window.c:716
+#: src/ui/window.c:1064
 msgid "Run"
 msgstr ""
 
-#: src/ui/window.c:717
+#: src/ui/window.c:1067
+msgid "1×"
+msgstr ""
+
+#: src/ui/window.c:1068
+msgid "3×"
+msgstr ""
+
+#: src/ui/window.c:1069
+msgid "5×"
+msgstr ""
+
+#: src/ui/window.c:1070
+msgid "10×"
+msgstr ""
+
+#: src/ui/window.c:1073
+msgid ""
+"Re-run the benchmark this many times back-to-back. Samples accumulate, so "
+"the averages get less noisy with more runs."
+msgstr ""
+
+#: src/ui/window.c:1074
 msgid "Stop"
 msgstr ""
 
-#: src/ui/window.c:718
+#: src/ui/window.c:1075
 msgid "Save CSV"
 msgstr ""
 
-#: src/ui/window.c:719
+#: src/ui/window.c:1076
 msgid "Save PNG"
 msgstr ""
 
-#: src/ui/window.c:720
+#: src/ui/window.c:1077
 msgid "Clone"
 msgstr ""
 
-#: src/ui/window.c:721
+#: src/ui/window.c:1078
 msgid "Add"
 msgstr ""
 
-#: src/ui/window.c:724
+#: src/ui/window.c:1081
 msgid "Cycle theme: auto → dark → light"
 msgstr ""
 
-#: src/ui/window.c:790
+#: src/ui/window.c:1110
+msgid "Start benchmark  <b>(Ctrl+R)</b>"
+msgstr ""
+
+#: src/ui/window.c:1111
+msgid "Stop benchmark  <b>(Ctrl+.)</b>"
+msgstr ""
+
+#: src/ui/window.c:1112
+msgid "Save results to CSV  <b>(Ctrl+S)</b>"
+msgstr ""
+
+#: src/ui/window.c:1113
+msgid "Add a custom resolver  <b>(Ctrl+N)</b>"
+msgstr ""
+
+#: src/ui/window.c:1114
+msgid "Settings  <b>(Ctrl+,)</b>"
+msgstr ""
+
+#: src/ui/window.c:1115
+msgid "Save the chart as a PNG image"
+msgstr ""
+
+#: src/ui/window.c:1116
+msgid "Open a frozen snapshot of the current results in a new window"
+msgstr ""
+
+#: src/ui/window.c:1164
 msgid "Introduction"
 msgstr ""
 
-#: src/ui/window.c:796
+#: src/ui/window.c:1170
 msgid "Conclusions"
+msgstr ""
+
+#: src/ui/window.c:1172
+msgid "Help"
 msgstr ""
