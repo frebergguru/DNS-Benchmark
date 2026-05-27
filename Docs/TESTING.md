@@ -2,12 +2,12 @@
 
 ```bash
 ctest --test-dir build --output-on-failure       # everything (with network)
-SKIP_NETWORK_TESTS=1 ctest --test-dir build      # offline only (CI)
+SKIP_NETWORK_TESTS=1 ctest --test-dir build      # offline only (hermetic)
 ```
 
 CTest treats a `77` exit code as "skipped". The three network-touching
 suites return 77 when `SKIP_NETWORK_TESTS` is set, so the same `ctest`
-invocation works in CI without a working network.
+invocation works on machines without a working network.
 
 ## Suite at a glance
 
@@ -34,11 +34,12 @@ Anything that opens a socket, hits libcurl, or starts an OpenSSL
 handshake is a smoke test. Anything that's pure CPU lives in `test_*`.
 This boundary matters because:
 
-- CI runs unit tests on every PR; smoke tests run on a separate matrix
-  job that's allowed to fail (transient network issues shouldn't block
-  merges).
 - Offline development uses `SKIP_NETWORK_TESTS=1` so the live-network
   variability doesn't show up as flakes.
+- The live tests are intended for local pre-push validation against a
+  working internet connection; they intentionally hit real public
+  resolvers (1.1.1.1, 8.8.8.8, 9.9.9.9) and will fail if the network
+  is offline or the resolvers are temporarily unreachable.
 
 ## Adding tests
 
@@ -94,9 +95,7 @@ if (getenv("SKIP_NETWORK_TESTS")) { puts("smoke_<thing>: SKIP"); return 77; }
 
 ## CI
 
-`.github/workflows/build.yml` runs the matrix:
-
-- `ubuntu-latest`: configure + build + offline tests (`SKIP_NETWORK_TESTS=1`)
-  + live tests with `continue-on-error` to surface flakes without
-  failing the job.
-- `windows-latest` / MSYS2 mingw64: configure + build + offline tests only.
+This project does not ship a CI configuration. Run the suite locally
+before pushing — `ctest --test-dir build --output-on-failure` is the
+contract, and `SKIP_NETWORK_TESTS=1 ctest --test-dir build` mirrors the
+hermetic / offline path.

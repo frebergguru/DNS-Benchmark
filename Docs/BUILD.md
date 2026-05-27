@@ -58,7 +58,7 @@ Run `cmake -B build -L` after configuring to see all detected variables.
 
 ```bash
 ctest --test-dir build --output-on-failure      # all (incl. live network)
-SKIP_NETWORK_TESTS=1 ctest --test-dir build     # offline-only (CI)
+SKIP_NETWORK_TESTS=1 ctest --test-dir build     # offline only (hermetic)
 ```
 
 The unit tests are forced to keep assertions live even in Release builds
