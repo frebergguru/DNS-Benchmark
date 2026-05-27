@@ -57,6 +57,8 @@ if [[ "$ARCH" != "$HOST_ARCH" && "${DNSB_IN_CROSS_CONTAINER:-0}" != "1" ]]; then
         --network=host \
         -v "$PROJECT_DIR:/work" -w /work \
         -e DNSB_IN_CROSS_CONTAINER=1 \
+        -e DNSB_HOST_UID="$(id -u)" \
+        -e DNSB_HOST_GID="$(id -g)" \
         -e ARCH="$ARCH" \
         "$IMAGE" bash -c '
             set -euo pipefail
@@ -168,6 +170,14 @@ echo ">> Running linuxdeploy ($LD_RUNNER) — bundling GTK 3 + transitive .so de
     --icon-file    "$ICON" \
     --plugin gtk \
     --output appimage
+
+# When we ran inside the cross-arch container as root, the produced
+# AppImage is owned by root on the bind-mounted host directory. Chown it
+# back to the host caller so they don't need sudo to manage their own
+# release artefact.
+if [[ "${DNSB_IN_CROSS_CONTAINER:-0}" == "1" && -n "${DNSB_HOST_UID:-}" ]]; then
+    chown "$DNSB_HOST_UID:${DNSB_HOST_GID:-$DNSB_HOST_UID}" "$PROJECT_DIR/$OUTPUT"
+fi
 
 echo
 echo ">> Done. Artefact:"

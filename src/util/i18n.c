@@ -1,6 +1,7 @@
 #include "i18n.h"
 
 #include <locale.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -16,11 +17,25 @@ static int dir_has_messages(const char *dir) {
 void dnsb_i18n_init(const char *locale_dir) {
     setlocale(LC_ALL, "");
 
+    /* Static so we can return its address as `dir` without leaking — the
+       value is read by bindtextdomain inside this call and not used after. */
+    static char appdir_locale[1024];
+
     const char *dir = locale_dir;
     if (!dir || !*dir) {
         const char *env = g_getenv("DNSB_LOCALEDIR");
         if (env && *env && dir_has_messages(env)) {
             dir = env;
+        }
+    }
+    /* AppImage: $APPDIR/usr/share/locale beats the compile-time install
+       path, which would otherwise point at /usr/share/locale on the host. */
+    if (!dir || !*dir) {
+        const char *appdir = g_getenv("APPDIR");
+        if (appdir && *appdir) {
+            snprintf(appdir_locale, sizeof(appdir_locale),
+                     "%s/usr/share/locale", appdir);
+            if (dir_has_messages(appdir_locale)) dir = appdir_locale;
         }
     }
 #ifdef DNSB_LOCALEDIR_BUILD

@@ -62,6 +62,18 @@ static char *resolve_data_dir(void) {
     const char *env = g_getenv("DNSB_DATADIR");
     if (env && *env) return g_strdup(env);
 
+    /* AppImage: the runtime sets APPDIR to the extracted root, and our
+       data tree lives at $APPDIR/usr/share/dnsbenchmark inside it. Must
+       be checked *before* the compile-time install path, which would
+       otherwise point at /usr/share/dnsbenchmark on the host system. */
+    const char *appdir = g_getenv("APPDIR");
+    if (appdir && *appdir) {
+        char *dir = g_build_filename(appdir, "usr", "share", "dnsbenchmark", NULL);
+        char *probe = g_build_filename(dir, "resolvers_default.tsv", NULL);
+        if (file_exists(probe)) { g_free(probe); return dir; }
+        g_free(probe); g_free(dir);
+    }
+
 #ifdef DNSB_DATADIR_BUILD
     {
         char *p = g_build_filename(DNSB_DATADIR_BUILD, "resolvers_default.tsv", NULL);
