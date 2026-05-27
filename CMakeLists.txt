@@ -108,7 +108,23 @@ target_compile_definitions(dnsbenchmark PRIVATE
 )
 
 install(TARGETS dnsbenchmark RUNTIME DESTINATION bin)
-install(DIRECTORY data/ DESTINATION share/dnsbenchmark)
+# Bundle the resolver list + test domains as the app's data tree.
+install(FILES data/resolvers_default.tsv data/test_domains.txt
+        DESTINATION share/dnsbenchmark)
+# Standard freedesktop locations so the .desktop is discoverable and the
+# icon shows up in app launchers + the GitHub-Releases AppImage.
+install(FILES data/dnsbenchmark.desktop
+        DESTINATION share/applications)
+install(FILES data/icons/dnsbenchmark.svg
+        DESTINATION share/icons/hicolor/scalable/apps)
+
+# Convenience target: `cmake --build build --target appimage` produces
+# DNS-Benchmark-<arch>.AppImage in the project root. See scripts/build-appimage.sh.
+add_custom_target(appimage
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/build-appimage.sh
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Building self-contained AppImage (downloads linuxdeploy on first run)"
+    VERBATIM)
 
 # ----- Translations (gettext) -----
 find_package(Intl)

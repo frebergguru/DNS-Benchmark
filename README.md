@@ -33,6 +33,19 @@ and ranks the results with a sortable table and a bar chart.
   Add a new language by dropping `po/<lang>.po` into the project and
   rebuilding — CMake compiles it to `.mo` automatically.
 
+## Download (pre-built)
+
+Grab the latest `DNS-Benchmark-x86_64.AppImage` from
+[Releases](https://github.com/frebergguru/DNS-Benchmark/releases), then:
+
+```bash
+chmod +x DNS-Benchmark-x86_64.AppImage
+./DNS-Benchmark-x86_64.AppImage
+```
+
+Runs on most glibc-based Linux distros — GTK 3 and every transitive
+library are bundled inside. No install step needed.
+
 ## Build (Linux)
 
 ```bash

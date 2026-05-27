@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=DNS Benchmark
+GenericName=DNS resolver benchmark
+GenericName[nb]=Ytelsestest av DNS-tjenere
+Comment=Benchmark DNS resolvers across UDP, TCP, DoH and DoT
+Comment[nb]=Test ytelsen til DNS-tjenere over UDP, TCP, DoH og DoT
+Exec=dnsbenchmark
+Icon=dnsbenchmark
+Terminal=false
+Categories=Network;Utility;
+Keywords=DNS;benchmark;resolver;DoH;DoT;
+StartupNotify=true
+StartupWMClass=guru.freberg.DNSBenchmark
