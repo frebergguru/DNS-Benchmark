@@ -64,7 +64,9 @@ if [[ "$ARCH" != "$HOST_ARCH" && "${DNSB_IN_CROSS_CONTAINER:-0}" != "1" ]]; then
             DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
                 ca-certificates wget file cmake gcc g++ make pkg-config gettext \
                 libgtk-3-dev libglib2.0-dev libcurl4-openssl-dev libssl-dev \
-                fuse libfuse2
+                fuse libfuse2 squashfs-tools binutils \
+                dpkg-dev desktop-file-utils librsvg2-bin libgdk-pixbuf2.0-bin \
+                gtk-update-icon-cache
             ./scripts/build-appimage.sh
         '
 fi
@@ -99,6 +101,34 @@ if [[ ! -x "$GTK_PLUGIN" ]]; then
     chmod +x "$GTK_PLUGIN"
 fi
 
+# Cross-arch quirk: AppImage runtimes tag their ELF with bytes "AI" at the
+# OS/ABI Pad. The kernel's binfmt_misc qemu-aarch64 magic mask treats this
+# as a non-Linux ELF and refuses to dispatch — so an aarch64 AppImage
+# cannot be exec'd from inside an aarch64-emulated container. The same
+# AppImage runs fine on a real aarch64 host because no binfmt routing is
+# involved there.
+#
+# Workaround: extract linuxdeploy's inner SquashFS payload using
+# unsquashfs (which doesn't need to *execute* the AppImage), and invoke
+# the extracted ELF directly. End users still get a proper AppImage as
+# the build *output*.
+LD_RUNNER="$LINUXDEPLOY"
+if [[ "${DNSB_IN_CROSS_CONTAINER:-0}" == "1" ]]; then
+    LD_EXTRACTED="$TOOLS_DIR/linuxdeploy-$LD_ARCH-extracted"
+    if [[ ! -x "$LD_EXTRACTED/usr/bin/linuxdeploy" ]]; then
+        echo ">> Extracting linuxdeploy SquashFS to bypass AppImage exec"
+        SQUASH_OFFSET=$(grep -aobP "hsqs" "$LINUXDEPLOY" | head -n1 | cut -d: -f1)
+        if [[ -z "$SQUASH_OFFSET" ]]; then
+            echo "Could not locate SquashFS payload offset in $LINUXDEPLOY" >&2
+            exit 1
+        fi
+        rm -rf "$LD_EXTRACTED"
+        unsquashfs -d "$LD_EXTRACTED" -o "$SQUASH_OFFSET" -no-progress "$LINUXDEPLOY" >/dev/null
+    fi
+    LD_RUNNER="$LD_EXTRACTED/AppRun"
+    [[ -x "$LD_RUNNER" ]] || LD_RUNNER="$LD_EXTRACTED/usr/bin/linuxdeploy"
+fi
+
 # --- 2. Configure + build + install into AppDir -------------------------
 echo ">> Configuring CMake"
 rm -rf "$BUILD_DIR" "$APPDIR"
@@ -131,8 +161,8 @@ export APPIMAGE_EXTRACT_AND_RUN=1
 # MB larger but lets it build on any host.
 export NO_STRIP=true
 
-echo ">> Running linuxdeploy (bundles GTK 3 + transitive .so deps)"
-"$LINUXDEPLOY" --appdir "$APPDIR" \
+echo ">> Running linuxdeploy ($LD_RUNNER) — bundling GTK 3 + transitive .so deps"
+"$LD_RUNNER" --appdir "$APPDIR" \
     --executable "$APPDIR/usr/bin/dnsbenchmark" \
     --desktop-file "$DESKTOP" \
     --icon-file    "$ICON" \
