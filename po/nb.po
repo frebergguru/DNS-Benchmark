@@ -1,0 +1,417 @@
+# Norwegian Bokmål translation for dnsbenchmark.
+# Copyright (C) 2026 dnsbenchmark contributors
+# This file is distributed under the same license as the dnsbenchmark package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: dnsbenchmark 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-05-27 14:00+0200\n"
+"Last-Translator: dnsbenchmark contributors\n"
+"Language-Team: Norwegian Bokmål\n"
+"Language: nb\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/ui/tab_nameservers.c
+msgid "<i>Press <b>Run</b> in the toolbar to start benchmarking.</i>"
+msgstr "<i>Trykk <b>Kjør</b> i verktøylinjen for å starte testen.</i>"
+
+#: src/ui/tab_nameservers.c
+msgid ""
+"<span foreground='#cc3333'>■</span> cached  <span "
+"foreground='#22aa44'>■</span> uncached  <span foreground='#7755bb'>■</span> "
+".com    <span foreground='#999999'>●</span> filled = system-configured, "
+"hollow = available"
+msgstr ""
+"<span foreground='#cc3333'>■</span> bufret  <span "
+"foreground='#22aa44'>■</span> ubufret  <span foreground='#7755bb'>■</span> "
+".com    <span foreground='#999999'>●</span> fylt = systemkonfigurert, åpen "
+"= tilgjengelig"
+
+#: src/ui/tab_conclusions.c
+msgid "Conclusions will appear here after a benchmark run completes.\n"
+msgstr "Konklusjoner vises her når testen er fullført.\n"
+
+#: src/ui/tab_tabular.c
+msgid "yes"
+msgstr "ja"
+
+#: src/ui/tab_tabular.c
+msgid "● ok"
+msgstr "● ok"
+
+#: src/ui/tab_tabular.c
+msgid "○ ok"
+msgstr "○ ok"
+
+#: src/ui/tab_tabular.c
+msgid "● fail"
+msgstr "● feil"
+
+#: src/ui/tab_tabular.c
+msgid "○ fail"
+msgstr "○ feil"
+
+#: src/ui/tab_tabular.c
+msgid "● redirect"
+msgstr "● omdirigerer"
+
+#: src/ui/tab_tabular.c
+msgid "○ redirect"
+msgstr "○ omdirigerer"
+
+#: src/ui/tab_tabular.c
+msgid "sidelined"
+msgstr "sidesatt"
+
+#: src/ui/tab_tabular.c
+msgid "● idle"
+msgstr "● inaktiv"
+
+#: src/ui/tab_tabular.c
+msgid "○ idle"
+msgstr "○ inaktiv"
+
+#: src/ui/tab_tabular.c
+msgid "Pin"
+msgstr "Fest"
+
+#: src/ui/tab_tabular.c src/ui/window.c
+msgid "Name"
+msgstr "Navn"
+
+#: src/ui/tab_tabular.c src/ui/window.c
+msgid "Owner"
+msgstr "Eier"
+
+#: src/ui/tab_tabular.c src/ui/window.c
+msgid "Address"
+msgstr "Adresse"
+
+#: src/ui/tab_tabular.c
+msgid "Transport"
+msgstr "Transport"
+
+#: src/ui/tab_tabular.c
+msgid "Status"
+msgstr "Status"
+
+#: src/ui/tab_tabular.c
+msgid "Cached ms"
+msgstr "Bufret ms"
+
+#: src/ui/tab_tabular.c
+msgid "Uncached ms"
+msgstr "Ubufret ms"
+
+#: src/ui/tab_tabular.c
+msgid ".com ms"
+msgstr ".com ms"
+
+#: src/ui/tab_tabular.c
+msgid "Reliability"
+msgstr "Pålitelighet"
+
+#: src/ui/tab_tabular.c
+msgid "Sent"
+msgstr "Sendt"
+
+#: src/ui/tab_tabular.c
+msgid "OK"
+msgstr "OK"
+
+#: src/ui/tab_tabular.c
+msgid "Redirects"
+msgstr "Omdirigerer"
+
+#: src/ui/tab_tabular.c
+msgid "DNSSEC"
+msgstr "DNSSEC"
+
+#: src/ui/window.c
+msgid "Benchmark complete.\n\n"
+msgstr "Test fullført.\n\n"
+
+#: src/ui/window.c
+msgid ""
+"Resolvers tested: %zu (responsive: %d, sidelined: %d, intercepting bad "
+"domains: %d)\n"
+"\n"
+msgstr ""
+"Tjenere testet: %zu (responsive: %d, sidesatt: %d, omdirigerer ugyldige "
+"navn: %d)\n"
+"\n"
+
+#: src/ui/window.c
+#, c-format
+msgid "Fastest cached lookups: %s (%s) — %.2f ms average\n"
+msgstr "Raskest bufret oppslag: %s (%s) — %.2f ms i snitt\n"
+
+#: src/ui/window.c
+#, c-format
+msgid "Fastest uncached lookups: %s (%s) — %.2f ms average\n"
+msgstr "Raskest ubufret oppslag: %s (%s) — %.2f ms i snitt\n"
+
+#: src/ui/window.c
+msgid ""
+"\n"
+"Notes:\n"
+" • Cached numbers are the most predictive of everyday browsing experience.\n"
+" • Resolvers in the redirector category should be avoided — they hijack "
+"invalid names.\n"
+" • Re-run several times; one snapshot is noisy.\n"
+msgstr ""
+"\n"
+"Merknader:\n"
+" • Bufrede tall er det som best forutsier daglig nettsurfing.\n"
+" • Tjenere som omdirigerer bør unngås — de kaprer ugyldige navn.\n"
+" • Kjør flere ganger; ett øyeblikksbilde er støyete.\n"
+
+#: src/ui/window.c
+#, c-format
+msgid "Finishing…  %zu/%zu resolvers"
+msgstr "Fullfører…  %zu/%zu tjenere"
+
+#: src/ui/window.c
+#, c-format
+msgid "%.1f%%  %zu/%zu resolvers  ·  ETA %s"
+msgstr "%.1f%%  %zu/%zu tjenere  ·  Tid igjen %s"
+
+#: src/ui/window.c
+#, c-format
+msgid "%.1f%%  %zu/%zu resolvers  ·  estimating…"
+msgstr "%.1f%%  %zu/%zu tjenere  ·  anslår…"
+
+#: src/ui/window.c
+#, c-format
+msgid "Starting…  %zu/%zu resolvers"
+msgstr "Starter…  %zu/%zu tjenere"
+
+#: src/ui/window.c
+#, c-format
+msgid "Done in %s"
+msgstr "Ferdig på %s"
+
+#: src/ui/window.c
+msgid "Idle"
+msgstr "Inaktiv"
+
+#: src/ui/window.c
+msgid "Starting…"
+msgstr "Starter…"
+
+#: src/ui/window.c
+msgid "<b>Benchmark running.</b> Sit tight — results update live."
+msgstr "<b>Test pågår.</b> Sitt godt — resultatene oppdateres direkte."
+
+#: src/ui/window.c
+msgid "Save results as CSV"
+msgstr "Lagre resultater som CSV"
+
+#: src/ui/window.c
+msgid "_Cancel"
+msgstr "_Avbryt"
+
+#: src/ui/window.c
+msgid "_Save"
+msgstr "_Lagre"
+
+#: src/ui/window.c
+msgid "Save chart as PNG"
+msgstr "Lagre diagram som PNG"
+
+#: src/ui/window.c
+msgid "DNS Benchmark — snapshot"
+msgstr "DNS Benchmark — øyeblikksbilde"
+
+#: src/ui/window.c
+msgid "Nameservers"
+msgstr "Navnetjenere"
+
+#: src/ui/window.c
+msgid "Tabular Data"
+msgstr "Tabelldata"
+
+#: src/ui/window.c
+msgid "Add resolver"
+msgstr "Legg til navnetjener"
+
+#: src/ui/window.c
+msgid "_Add"
+msgstr "_Legg til"
+
+#: src/ui/window.c
+msgid "e.g. My Router"
+msgstr "f.eks. Min ruter"
+
+#: src/ui/window.c
+msgid "e.g. Home"
+msgstr "f.eks. Hjem"
+
+#: src/ui/window.c
+msgid "e.g. 192.168.1.1"
+msgstr "f.eks. 192.168.1.1"
+
+#: src/ui/window.c
+msgid "◐ dark"
+msgstr "◐ mørkt"
+
+#: src/ui/window.c
+msgid "◑ light"
+msgstr "◑ lyst"
+
+#: src/ui/window.c
+msgid "◐ auto"
+msgstr "◐ auto"
+
+#: src/ui/window.c
+msgid "Settings"
+msgstr "Innstillinger"
+
+#: src/ui/window.c
+msgid "_Apply"
+msgstr "_Bruk"
+
+#: src/ui/window.c
+msgid "Probe redirection (NXDOMAIN test)"
+msgstr "Test omdirigering (NXDOMAIN-test)"
+
+#: src/ui/window.c
+msgid "Probe DNSSEC (sets DO bit — some resolvers misbehave)"
+msgstr "Test DNSSEC (setter DO-bit — noen tjenere oppfører seg dårlig)"
+
+#: src/ui/window.c
+msgid "Query-sets per resolver"
+msgstr "Spørringssett per tjener"
+
+#: src/ui/window.c
+msgid "Spacing (ms)"
+msgstr "Mellomrom (ms)"
+
+#: src/ui/window.c
+msgid "Timeout (ms)"
+msgstr "Tidsavbrudd (ms)"
+
+#: src/ui/window.c
+msgid "Concurrency"
+msgstr "Samtidighet"
+
+#: src/ui/window.c
+msgid "DNS Benchmark"
+msgstr "DNS Benchmark"
+
+#: src/ui/window.c
+msgid "Change language"
+msgstr "Bytt språk"
+
+#: src/ui/window.c
+msgid "Auto (system)"
+msgstr "Auto (system)"
+
+#: src/ui/window.c
+msgid "<small>Applies immediately. A running benchmark will stop.</small>"
+msgstr "<small>Tas i bruk umiddelbart. En pågående test vil stoppe.</small>"
+
+#: src/ui/window.c
+msgid "Run"
+msgstr "Kjør"
+
+#: src/ui/window.c
+msgid "Stop"
+msgstr "Stopp"
+
+#: src/ui/window.c
+msgid "Save CSV"
+msgstr "Lagre CSV"
+
+#: src/ui/window.c
+msgid "Save PNG"
+msgstr "Lagre PNG"
+
+#: src/ui/window.c
+msgid "Clone"
+msgstr "Klon"
+
+#: src/ui/window.c
+msgid "Add"
+msgstr "Legg til"
+
+#: src/ui/window.c
+msgid "Cycle theme: auto → dark → light"
+msgstr "Bytt tema: auto → mørkt → lyst"
+
+#: src/ui/window.c
+msgid "Introduction"
+msgstr "Introduksjon"
+
+#: src/ui/window.c
+msgid "Conclusions"
+msgstr "Konklusjoner"
+
+#: src/ui/tab_intro.c
+msgid ""
+"<span size='x-large' weight='bold'>DNS Benchmark</span>\n"
+"\n"
+"This tool measures the performance and reliability of DNS resolvers by "
+"timing <b>cached</b>, <b>uncached</b>, and <b>.com</b> lookups against each "
+"server.\n"
+"\n"
+"<b>Before you start</b>\n"
+"  • Close bandwidth-heavy apps. Other traffic on your link will inflate "
+"response times and skew results.\n"
+"  • Run the benchmark several times across the day; a single run is a "
+"snapshot, not a verdict.\n"
+"  • The first run does no real work — it just primes each resolver’s cache. "
+"The reported cached numbers come from subsequent queries.\n"
+"\n"
+"<b>How to read the results</b>\n"
+"  • <span foreground='#cc3333'>Red</span> bar = cached lookup (the most "
+"common case).\n"
+"  • <span foreground='#22aa44'>Green</span> bar = uncached lookup (recursive "
+"walk).\n"
+"  • <span foreground='#7755bb'>Purple</span> bar = .com TLD lookup.\n"
+"  • <b>Status dots:</b> filled = currently configured on this machine; "
+"green = healthy; red = unresponsive; orange = redirects bad domains to "
+"ads.\n"
+"\n"
+"<b>Tabs</b>\n"
+"  • <b>Nameservers</b> — the main view: live bar chart + status list.\n"
+"  • <b>Tabular Data</b> — every measurement in a sortable table.\n"
+"  • <b>Conclusions</b> — ranked recommendation after the run.\n"
+"\n"
+"Use the toolbar above to start, stop, save results, or add custom resolvers."
+msgstr ""
+"<span size='x-large' weight='bold'>DNS Benchmark</span>\n"
+"\n"
+"Dette verktøyet måler ytelsen og påliteligheten til DNS-tjenere ved å ta "
+"tiden på <b>bufrede</b>, <b>ubufrede</b> og <b>.com</b>-oppslag mot hver "
+"tjener.\n"
+"\n"
+"<b>Før du starter</b>\n"
+"  • Lukk båndbreddetunge programmer. Annen trafikk på linjen vil øke "
+"svartidene og vri resultatene.\n"
+"  • Kjør testen flere ganger i løpet av dagen; én kjøring er et "
+"øyeblikksbilde, ikke en dom.\n"
+"  • Første runde gjør ingen reell måling — den varmer bare opp bufferen til "
+"hver tjener. De rapporterte bufrede tallene kommer fra påfølgende "
+"spørringer.\n"
+"\n"
+"<b>Slik leser du resultatene</b>\n"
+"  • <span foreground='#cc3333'>Rød</span> stolpe = bufret oppslag (det "
+"vanligste tilfellet).\n"
+"  • <span foreground='#22aa44'>Grønn</span> stolpe = ubufret oppslag "
+"(rekursivt søk).\n"
+"  • <span foreground='#7755bb'>Lilla</span> stolpe = .com TLD-oppslag.\n"
+"  • <b>Statusprikker:</b> fylt = aktiv på denne maskinen; grønn = frisk; "
+"rød = svarer ikke; oransje = omdirigerer ugyldige navn til reklame.\n"
+"\n"
+"<b>Faner</b>\n"
+"  • <b>Navnetjenere</b> — hovedvisning: levende stolpediagram + statusliste.\n"
+"  • <b>Tabelldata</b> — hver måling i en sorterbar tabell.\n"
+"  • <b>Konklusjoner</b> — rangert anbefaling etter kjøringen.\n"
+"\n"
+"Bruk verktøylinjen over til å starte, stoppe, lagre resultater eller legge "
+"til egne tjenere."

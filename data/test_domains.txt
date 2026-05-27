@@ -1,0 +1,22 @@
+# Domains used for synthetic uncached lookups.
+# Each query prepends a random label so the recursive lookup is forced.
+google.com
+youtube.com
+facebook.com
+amazon.com
+twitter.com
+instagram.com
+wikipedia.org
+yahoo.com
+netflix.com
+reddit.com
+github.com
+microsoft.com
+apple.com
+cloudflare.com
+linkedin.com
+twitch.tv
+ebay.com
+nytimes.com
+bbc.co.uk
+stackoverflow.com
