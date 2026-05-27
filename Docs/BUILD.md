@@ -8,7 +8,7 @@
 sudo pacman -S gtk3 glib2 curl openssl cmake gcc pkgconf gettext
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
-./build/DNS-Benchmark
+./build/dnsbenchmark
 ```
 
 ### Debian / Ubuntu
@@ -18,7 +18,7 @@ sudo apt install libgtk-3-dev libglib2.0-dev libcurl4-openssl-dev \
                  libssl-dev cmake gcc pkg-config gettext
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
-./build/DNS-Benchmark
+./build/dnsbenchmark
 ```
 
 ### Fedora
@@ -36,7 +36,7 @@ cmake --build build -j
 pacman -S mingw-w64-x86_64-{gcc,cmake,pkgconf,gtk3,glib2,curl,openssl,gettext}
 cmake -S . -B build -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
-./build/DNS-Benchmark.exe
+./build/dnsbenchmark.exe
 ```
 
 When shipping outside MSYS2, bundle the GTK 3, GLib, libcurl, OpenSSL and
@@ -72,10 +72,10 @@ cmake --install build --prefix /usr/local
 
 This places:
 
-- `bin/DNS-Benchmark`
-- `share/DNS-Benchmark/resolvers_default.tsv`
-- `share/DNS-Benchmark/test_domains.txt`
-- `share/locale/<lang>/LC_MESSAGES/DNS-Benchmark.mo` (one per `po/*.po`)
+- `bin/dnsbenchmark`
+- `share/dnsbenchmark/resolvers_default.tsv`
+- `share/dnsbenchmark/test_domains.txt`
+- `share/locale/<lang>/LC_MESSAGES/dnsbenchmark.mo` (one per `po/*.po`)
 
 The binary searches for its data at the `DNSB_DATADIR_BUILD` path embedded
 at compile time first (so dev runs from the build tree work without

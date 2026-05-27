@@ -1,4 +1,4 @@
-# DNS-Benchmark default resolver list
+# dnsbenchmark default resolver list
 # Format: name<TAB>owner<TAB>address<TAB>transport<TAB>port<TAB>hostname
 # transport: udp tcp doh dot
 # hostname is optional; required only for DoH/DoT when the cert's SAN does not

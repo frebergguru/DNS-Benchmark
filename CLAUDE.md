@@ -20,15 +20,15 @@ plan that drove the initial six milestones lives in
 cmake -S . -B build && cmake --build build -j           # build
 ctest --test-dir build --output-on-failure              # all tests (incl. live)
 SKIP_NETWORK_TESTS=1 ctest --test-dir build             # offline only
-./build/DNS-Benchmark                                    # run
+./build/dnsbenchmark                                    # run
 ```
 
 Regenerate i18n template after adding `_()` strings:
 
 ```bash
 xgettext --keyword=_ --keyword=N_ --from-code=UTF-8 \
-  --output=po/DNS-Benchmark.pot $(find src -name '*.c')
-msgmerge --update po/nb.po po/DNS-Benchmark.pot
+  --output=po/dnsbenchmark.pot $(find src -name '*.c')
+msgmerge --update po/nb.po po/dnsbenchmark.pot
 ```
 
 ## Threading invariants — do not break

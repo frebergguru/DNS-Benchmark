@@ -59,7 +59,7 @@ live in a parallel `dnsb_theme_colors` struct so the chart matches the
 chrome.
 
 The `◐` button cycles `auto → dark → light → auto`, persisting the
-choice to `~/.config/DNS-Benchmark/theme`. Listeners (e.g., the chart)
+choice to `~/.config/dnsbenchmark/theme`. Listeners (e.g., the chart)
 register via `dnsb_theme_register_listener` and **must unregister
 during their destroy** or the next theme change will fire callbacks on
 freed memory.
@@ -118,4 +118,4 @@ ongoing benchmark.
 ## Custom dialogs
 
 Settings, Add Resolver, file pickers — all built imperatively inline in
-`window.c`. Translation strings live in `po/DNS-Benchmark.pot`.
+`window.c`. Translation strings live in `po/dnsbenchmark.pot`.

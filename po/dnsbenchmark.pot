@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR DNS-Benchmark contributors
-# This file is distributed under the same license as the DNS-Benchmark package.
+# Copyright (C) YEAR dnsbenchmark contributors
+# This file is distributed under the same license as the dnsbenchmark package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: DNS-Benchmark 0.1.0\n"
+"Project-Id-Version: dnsbenchmark 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-27 15:13+0200\n"
+"POT-Creation-Date: 2026-05-27 15:18+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"

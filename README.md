@@ -26,10 +26,10 @@ and ranks the results with a sortable table and a bar chart.
   `GetAdaptersAddresses` on Windows)
 - Built-in **dark** and **light** themes (CRT-amber palette inspired by
   https://www.freberg.guru), cycle via the `◐` button in the header bar.
-  Preference is persisted to `~/.config/DNS-Benchmark/theme`.
+  Preference is persisted to `~/.config/dnsbenchmark/theme`.
 - Internationalized — **English** (source) and **Norwegian Bokmål** included.
   Follows the system locale by default; override at launch with
-  `LANG=nb_NO.UTF-8 ./DNS-Benchmark` or `LANG=en_US.UTF-8 ./DNS-Benchmark`.
+  `LANG=nb_NO.UTF-8 ./dnsbenchmark` or `LANG=en_US.UTF-8 ./dnsbenchmark`.
   Add a new language by dropping `po/<lang>.po` into the project and
   rebuilding — CMake compiles it to `.mo` automatically.
 
@@ -45,7 +45,7 @@ sudo apt install libgtk-3-dev libglib2.0-dev libcurl4-openssl-dev libssl-dev \
 
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
-./build/DNS-Benchmark
+./build/dnsbenchmark
 ```
 
 Run the test suite:
@@ -61,7 +61,7 @@ SKIP_NETWORK_TESTS=1 ctest --test-dir build               # offline only
 pacman -S mingw-w64-x86_64-{gcc,cmake,pkgconf,gtk3,glib2,curl,openssl}
 cmake -S . -B build -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
-./build/DNS-Benchmark.exe
+./build/dnsbenchmark.exe
 ```
 
 Bundle GTK/GLib/libcurl/OpenSSL DLLs alongside the executable when shipping

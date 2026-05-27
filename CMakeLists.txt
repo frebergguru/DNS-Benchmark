@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(DNS-Benchmark LANGUAGES C VERSION 0.1.0)
+project(dnsbenchmark LANGUAGES C VERSION 0.1.0)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -89,7 +89,7 @@ if(WITH_LDNS)
     target_compile_definitions(dnsb_core PUBLIC HAVE_LDNS=1)
 endif()
 
-add_executable(DNS-Benchmark
+add_executable(dnsbenchmark
     src/main.c
     src/ui/theme.c
     src/ui/window.c
@@ -99,15 +99,15 @@ add_executable(DNS-Benchmark
     src/ui/tab_conclusions.c
     src/ui/chart.c
 )
-target_link_libraries(DNS-Benchmark PRIVATE dnsb_core PkgConfig::GTK3)
+target_link_libraries(dnsbenchmark PRIVATE dnsb_core PkgConfig::GTK3)
 
-target_compile_definitions(DNS-Benchmark PRIVATE
+target_compile_definitions(dnsbenchmark PRIVATE
     DNSB_DATADIR_BUILD="${CMAKE_CURRENT_SOURCE_DIR}/data"
-    DNSB_DATADIR_INSTALL="${CMAKE_INSTALL_PREFIX}/share/DNS-Benchmark"
+    DNSB_DATADIR_INSTALL="${CMAKE_INSTALL_PREFIX}/share/dnsbenchmark"
 )
 
-install(TARGETS DNS-Benchmark RUNTIME DESTINATION bin)
-install(DIRECTORY data/ DESTINATION share/DNS-Benchmark)
+install(TARGETS dnsbenchmark RUNTIME DESTINATION bin)
+install(DIRECTORY data/ DESTINATION share/dnsbenchmark)
 
 # ----- Translations (gettext) -----
 find_package(Intl)
@@ -119,7 +119,7 @@ endif()
 find_program(MSGFMT_EXECUTABLE msgfmt)
 set(DNSB_LOCALEDIR_BUILD   "${CMAKE_BINARY_DIR}/locale")
 set(DNSB_LOCALEDIR_INSTALL "${CMAKE_INSTALL_PREFIX}/share/locale")
-target_compile_definitions(DNS-Benchmark PRIVATE
+target_compile_definitions(dnsbenchmark PRIVATE
     DNSB_LOCALEDIR_BUILD="${DNSB_LOCALEDIR_BUILD}"
     DNSB_LOCALEDIR_INSTALL="${DNSB_LOCALEDIR_INSTALL}"
 )
@@ -133,7 +133,7 @@ if(MSGFMT_EXECUTABLE)
     set(DNSB_MO_OUTPUTS "")
     foreach(po ${DNSB_PO_FILES})
         get_filename_component(lang ${po} NAME_WE)
-        set(mo_out "${DNSB_LOCALEDIR_BUILD}/${lang}/LC_MESSAGES/DNS-Benchmark.mo")
+        set(mo_out "${DNSB_LOCALEDIR_BUILD}/${lang}/LC_MESSAGES/dnsbenchmark.mo")
         add_custom_command(
             OUTPUT  ${mo_out}
             COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -148,7 +148,7 @@ if(MSGFMT_EXECUTABLE)
     endforeach()
     if(DNSB_MO_OUTPUTS)
         add_custom_target(translations ALL DEPENDS ${DNSB_MO_OUTPUTS})
-        add_dependencies(DNS-Benchmark translations)
+        add_dependencies(dnsbenchmark translations)
     endif()
 endif()
 

@@ -42,8 +42,8 @@ void dnsb_i18n_init(const char *locale_dir) {
 
 static char *lang_pref_path(void) {
     const char *xdg = g_getenv("XDG_CONFIG_HOME");
-    if (xdg && *xdg) return g_build_filename(xdg, "DNS-Benchmark", "lang", NULL);
-    return g_build_filename(g_get_home_dir(), ".config", "DNS-Benchmark", "lang", NULL);
+    if (xdg && *xdg) return g_build_filename(xdg, "dnsbenchmark", "lang", NULL);
+    return g_build_filename(g_get_home_dir(), ".config", "dnsbenchmark", "lang", NULL);
 }
 
 char *dnsb_lang_pref_load(void) {

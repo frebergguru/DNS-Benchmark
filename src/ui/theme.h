@@ -34,7 +34,7 @@ typedef struct {
 } dnsb_theme_colors;
 
 /* Initialize the theme system. Reads the persisted preference from
-   `${XDG_CONFIG_HOME:-~/.config}/DNS-Benchmark/theme` and applies it. */
+   `${XDG_CONFIG_HOME:-~/.config}/dnsbenchmark/theme` and applies it. */
 void dnsb_theme_init(GtkApplication *app);
 
 /* Apply a specific mode (AUTO resolves to dark unless overridden by env). */

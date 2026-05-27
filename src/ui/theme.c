@@ -77,9 +77,9 @@ const char *dnsb_theme_mode_label(dnsb_theme_mode m) {
 
 static char *config_path(void) {
     const char *xdg = g_getenv("XDG_CONFIG_HOME");
-    if (xdg && *xdg) return g_build_filename(xdg, "DNS-Benchmark", "theme", NULL);
+    if (xdg && *xdg) return g_build_filename(xdg, "dnsbenchmark", "theme", NULL);
     const char *home = g_get_home_dir();
-    return g_build_filename(home, ".config", "DNS-Benchmark", "theme", NULL);
+    return g_build_filename(home, ".config", "dnsbenchmark", "theme", NULL);
 }
 
 static dnsb_theme_mode load_pref(void) {

@@ -1,13 +1,13 @@
-# Norwegian Bokmål translation for DNS-Benchmark.
-# Copyright (C) 2026 DNS-Benchmark contributors
-# This file is distributed under the same license as the DNS-Benchmark package.
+# Norwegian Bokmål translation for dnsbenchmark.
+# Copyright (C) 2026 dnsbenchmark contributors
+# This file is distributed under the same license as the dnsbenchmark package.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: DNS-Benchmark 0.1.0\n"
+"Project-Id-Version: dnsbenchmark 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-05-27 14:00+0200\n"
-"Last-Translator: DNS-Benchmark contributors\n"
+"Last-Translator: dnsbenchmark contributors\n"
 "Language-Team: Norwegian Bokmål\n"
 "Language: nb\n"
 "MIME-Version: 1.0\n"
