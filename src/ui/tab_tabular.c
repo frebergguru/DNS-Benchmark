@@ -27,7 +27,8 @@ int dnsb_pin_first_compare(GtkTreeModel *m, GtkTreeIter *a, GtkTreeIter *b, gpoi
         int ia, ib;
         gtk_tree_model_get(m, a, col, &ia, -1);
         gtk_tree_model_get(m, b, col, &ib, -1);
-        return ia - ib;
+        /* (ia - ib) overflows for unbounded ints (queries_sent/queries_ok). */
+        return (ia > ib) - (ia < ib);
     }
     if (t == G_TYPE_STRING) {
         gchar *sa = NULL, *sb = NULL;

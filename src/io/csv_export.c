@@ -1,21 +1,43 @@
 #include "csv_export.h"
 
+#include <glib.h>
+
 #include <stdio.h>
 #include <string.h>
 
-static void write_csv_field(FILE *f, const char *s) {
-    if (!s) { fputs("", f); return; }
-    int needs_quote = 0;
+static int needs_quoting(const char *s) {
+    if (!s || !*s) return 0;
+    /* Defeat spreadsheet formula injection (CWE-1236): cells beginning
+       with these characters are interpreted as formulas by Excel and
+       LibreOffice Calc. Quoting alone is not enough — Excel still strips
+       outer quotes — but at least the leading quote breaks the formula. */
+    if (*s == '=' || *s == '+' || *s == '-' || *s == '@') return 1;
     for (const char *p = s; *p; p++) {
-        if (*p == ',' || *p == '"' || *p == '\n' || *p == '\r') { needs_quote = 1; break; }
+        if (*p == ',' || *p == '"' || *p == '\n' || *p == '\r' || *p == '\t') return 1;
     }
-    if (!needs_quote) { fputs(s, f); return; }
+    return 0;
+}
+
+static void write_csv_field(FILE *f, const char *s) {
+    if (!s) return;
+    if (!needs_quoting(s)) { fputs(s, f); return; }
     fputc('"', f);
     for (const char *p = s; *p; p++) {
         if (*p == '"') fputc('"', f);
         fputc(*p, f);
     }
     fputc('"', f);
+}
+
+/* Write a double with a fixed decimal point regardless of the user's
+   LC_NUMERIC. fprintf("%.3f", ...) writes a comma in many locales, which
+   would corrupt a comma-separated file. */
+static void write_csv_double(FILE *f, double v, int prec) {
+    char fmt[8];
+    char buf[64];
+    snprintf(fmt, sizeof(fmt), "%%.%df", prec);
+    g_ascii_formatd(buf, sizeof(buf), fmt, v);
+    fputs(buf, f);
 }
 
 int dnsb_csv_export(const char *path, dnsb_engine *eng) {
@@ -63,11 +85,24 @@ int dnsb_csv_export(const char *path, dnsb_engine *eng) {
         g_mutex_unlock(&r->stats_mutex);
 
         double reliab = sent ? 100.0 * (double)okq / (double)sent : 0.0;
-        fprintf(f, "%.3f,%.3f,%.3f,%.3f,%.3f,", c_min, c_mean, c_med, c_max, c_sd);
-        fprintf(f, "%.3f,%.3f,%.3f,%.3f,%.3f,", u_min, u_mean, u_med, u_max, u_sd);
-        fprintf(f, "%.3f,%.3f,%.3f,%.3f,%.3f,", d_min, d_mean, d_med, d_max, d_sd);
-        fprintf(f, "%d,%d,%.2f,%d,%d,%d\n",
-                sent, okq, reliab, redir, dnssec, sidel);
+        write_csv_double(f, c_min, 3); fputc(',', f);
+        write_csv_double(f, c_mean, 3); fputc(',', f);
+        write_csv_double(f, c_med, 3); fputc(',', f);
+        write_csv_double(f, c_max, 3); fputc(',', f);
+        write_csv_double(f, c_sd, 3); fputc(',', f);
+        write_csv_double(f, u_min, 3); fputc(',', f);
+        write_csv_double(f, u_mean, 3); fputc(',', f);
+        write_csv_double(f, u_med, 3); fputc(',', f);
+        write_csv_double(f, u_max, 3); fputc(',', f);
+        write_csv_double(f, u_sd, 3); fputc(',', f);
+        write_csv_double(f, d_min, 3); fputc(',', f);
+        write_csv_double(f, d_mean, 3); fputc(',', f);
+        write_csv_double(f, d_med, 3); fputc(',', f);
+        write_csv_double(f, d_max, 3); fputc(',', f);
+        write_csv_double(f, d_sd, 3); fputc(',', f);
+        fprintf(f, "%d,%d,", sent, okq);
+        write_csv_double(f, reliab, 2);
+        fprintf(f, ",%d,%d,%d\n", redir, dnssec, sidel);
     }
     fclose(f);
     return 0;

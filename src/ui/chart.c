@@ -273,6 +273,8 @@ static void on_chart_destroyed(GtkWidget *area, gpointer data) {
     dnsb_theme_unregister_listener(on_theme_changed, c);
     if (c->model) {
         g_signal_handlers_disconnect_by_data(c->model, c);
+        g_object_unref(c->model);
+        c->model = NULL;
     }
     c->area = NULL;
     g_free(c);
@@ -280,7 +282,10 @@ static void on_chart_destroyed(GtkWidget *area, gpointer data) {
 
 dnsb_chart *dnsb_chart_new(GtkTreeModel *model) {
     dnsb_chart *c = g_new0(dnsb_chart, 1);
-    c->model = model;
+    /* Take our own ref so callers can drop theirs immediately; the model
+       stays alive for the lifetime of the chart, which keeps redrawing
+       from a dangling pointer impossible. */
+    c->model = g_object_ref(model);
     c->area = gtk_drawing_area_new();
     gtk_widget_set_size_request(c->area, 480, 200);
     g_signal_connect(c->area, "draw",    G_CALLBACK(on_draw),           c);

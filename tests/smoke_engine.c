@@ -71,14 +71,23 @@ int main(void) {
     g_main_loop_run(loop);
     g_main_loop_unref(loop);
 
+    /* If we exited via the 20s watchdog rather than DNSB_EVT_RUN_DONE,
+       workers may still be in flight. Stop and join them before reading
+       per-resolver stats, otherwise we'd race the same realloc-during-
+       qsort the engine's stats_mutex exists to prevent. */
+    dnsb_engine_stop(e);
+
     int any_ok = 0;
     for (size_t i = 0; i < dnsb_engine_resolver_count(e); i++) {
         dnsb_resolver *r = dnsb_engine_resolver_at(e, i);
+        g_mutex_lock(&r->stats_mutex);
+        int qok = r->queries_ok, qsent = r->queries_sent;
         double mc = dnsb_stats_mean(&r->cached);
         double mu = dnsb_stats_mean(&r->uncached);
+        g_mutex_unlock(&r->stats_mutex);
         printf("  %-12s ok=%d sent=%d cached=%.2fms uncached=%.2fms\n",
-               r->name, r->queries_ok, r->queries_sent, mc, mu);
-        if (r->queries_ok > 0 && (mc > 0 || mu > 0)) any_ok = 1;
+               r->name, qok, qsent, mc, mu);
+        if (qok > 0 && (mc > 0 || mu > 0)) any_ok = 1;
     }
 
     dnsb_engine_free(e);

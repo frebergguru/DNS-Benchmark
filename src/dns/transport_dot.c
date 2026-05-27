@@ -201,18 +201,24 @@ int dnsb_dot_exchange(void **state_inout,
     frame[0] = (uint8_t)(query_len >> 8);
     frame[1] = (uint8_t)(query_len & 0xff);
     memcpy(frame + 2, query, query_len);
-    if (ssl_send_all(ssl, fd, frame, 2 + query_len, deadline) != 0) {
-        SSL_shutdown(ssl); SSL_free(ssl); dnsb_closesock(fd); return -1;
+    /* Same as transport_tcp.c: propagate the -2/-1 distinction from the
+       helpers so timeouts after the TLS handshake aren't conflated with
+       hard errors. */
+    int sr = ssl_send_all(ssl, fd, frame, 2 + query_len, deadline);
+    if (sr != 0) {
+        SSL_shutdown(ssl); SSL_free(ssl); dnsb_closesock(fd); return sr;
     }
 
     uint8_t lenbuf[2];
-    if (ssl_recv_n(ssl, fd, lenbuf, 2, deadline) != 0) {
-        SSL_shutdown(ssl); SSL_free(ssl); dnsb_closesock(fd); return -1;
+    int rr = ssl_recv_n(ssl, fd, lenbuf, 2, deadline);
+    if (rr != 0) {
+        SSL_shutdown(ssl); SSL_free(ssl); dnsb_closesock(fd); return rr;
     }
     size_t rlen = ((size_t)lenbuf[0] << 8) | lenbuf[1];
     if (rlen > resp_cap) { SSL_shutdown(ssl); SSL_free(ssl); dnsb_closesock(fd); return -1; }
-    if (ssl_recv_n(ssl, fd, resp_buf, rlen, deadline) != 0) {
-        SSL_shutdown(ssl); SSL_free(ssl); dnsb_closesock(fd); return -1;
+    rr = ssl_recv_n(ssl, fd, resp_buf, rlen, deadline);
+    if (rr != 0) {
+        SSL_shutdown(ssl); SSL_free(ssl); dnsb_closesock(fd); return rr;
     }
 
     *resp_len = rlen;

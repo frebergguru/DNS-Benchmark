@@ -64,13 +64,18 @@ int dnsb_pkt_build_query(uint8_t *buf, size_t buflen,
 }
 
 /* Skip a DNS name starting at off. Handles compression pointers.
-   Returns new offset after the name, or -1 on error. */
+   Returns new offset after the name, or -1 on error.
+   Forward-pointing compression pointers are rejected: they don't occur in
+   well-formed server responses and accepting them mis-positions the cursor
+   so the answer section is parsed from junk. */
 static int skip_name(const uint8_t *buf, size_t buflen, size_t off, size_t *new_off) {
     size_t hops = 0;
     while (off < buflen) {
         uint8_t b = buf[off];
         if ((b & 0xc0) == 0xc0) {
             if (off + 2 > buflen) return -1;
+            uint16_t ptr = ((uint16_t)(b & 0x3f) << 8) | buf[off + 1];
+            if (ptr >= off) return -1;
             off += 2;
             *new_off = off;
             return 0;

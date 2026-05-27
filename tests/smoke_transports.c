@@ -1,5 +1,10 @@
 /* Live transport smoke tests for TCP, DoH, and DoT against well-known
-   public resolvers. Skipped via SKIP_NETWORK_TESTS=1. */
+   public resolvers. Skipped via SKIP_NETWORK_TESTS=1.
+
+   DoH/DoT blocks are compiled in only when the corresponding transport
+   was enabled at build time, and the pass count is computed dynamically
+   so a -DWITH_DOH=OFF or -DWITH_DOT=OFF build still produces a passing
+   smoke test. */
 #include "dns/packet.h"
 #include "dns/transport.h"
 #include "net/socket_compat.h"
@@ -19,6 +24,7 @@ static void fill_ep(dnsb_endpoint *ep, const char *addr, int port) {
 
 static int exchange_and_check(int rc, size_t rlen, const uint8_t *resp, uint16_t expect_id,
                               const char *label, uint64_t rtt) {
+    (void)expect_id;
     if (rc == -2) { printf("  %-8s: TIMEOUT\n", label); return 0; }
     if (rc != 0)  { printf("  %-8s: error rc=%d\n", label, rc); return 0; }
     if (rlen < 12) { printf("  %-8s: short response\n", label); return 0; }
@@ -38,8 +44,10 @@ int main(void) {
     if (dnsb_net_init() != 0) { fprintf(stderr, "net_init failed\n"); return 1; }
 
     int passes = 0;
+    int expected = 0;
 
     /* TCP via 1.1.1.1:53. */
+    expected++;
     {
         dnsb_endpoint ep; fill_ep(&ep, "1.1.1.1", 53);
         uint8_t q[256], r[1500]; size_t qlen, rlen; uint64_t rtt = 0;
@@ -48,7 +56,9 @@ int main(void) {
         passes += exchange_and_check(rc, rlen, r, 0xa11c, "TCP", rtt);
     }
 
+#if DNSB_HAVE_DOH
     /* DoH via 1.1.1.1:443 with cloudflare-dns.com hostname. */
+    expected += 2;
     {
         dnsb_endpoint ep; fill_ep(&ep, "1.1.1.1", 443);
         uint8_t q[256], r[4096]; size_t qlen, rlen; uint64_t rtt = 0;
@@ -66,8 +76,11 @@ int main(void) {
         }
         dnsb_doh_free_state(state);
     }
+#endif
 
+#if DNSB_HAVE_DOT
     /* DoT via 1.1.1.1:853 with cloudflare-dns.com SNI. */
+    expected += 2;
     {
         dnsb_endpoint ep; fill_ep(&ep, "1.1.1.1", 853);
         uint8_t q[256], r[4096]; size_t qlen, rlen; uint64_t rtt = 0;
@@ -85,8 +98,9 @@ int main(void) {
         }
         dnsb_dot_free_state(state);
     }
+#endif
 
     dnsb_net_shutdown();
-    printf("smoke_transports: %d/5 OK\n", passes);
-    return passes == 5 ? 0 : 1;
+    printf("smoke_transports: %d/%d OK\n", passes, expected);
+    return passes == expected ? 0 : 1;
 }

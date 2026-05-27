@@ -48,12 +48,16 @@ int dnsb_get_system_resolvers(char ***out_list, size_t *n) {
             }
             if (!buf[0]) continue;
             if (count == cap) {
-                cap = cap ? cap * 2 : 4;
-                arr = realloc(arr, (cap + 1) * sizeof(char *));
+                size_t newcap = cap ? cap * 2 : 4;
+                char **tmp = realloc(arr, (newcap + 1) * sizeof(char *));
+                if (!tmp) goto done;
+                arr = tmp;
+                cap = newcap;
             }
             arr[count++] = dnsb_strdup(buf);
         }
     }
+done:
     if (arr) arr[count] = NULL;
     *out_list = arr;
     *n = count;

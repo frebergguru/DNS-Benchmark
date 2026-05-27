@@ -42,12 +42,16 @@ struct dnsb_engine {
     GMutex      callback_mutex;
 };
 
-static void resolver_vec_push(resolver_vec *v, dnsb_resolver *r) {
+static int resolver_vec_push(resolver_vec *v, dnsb_resolver *r) {
     if (v->n == v->cap) {
-        v->cap = v->cap ? v->cap * 2 : 16;
-        v->items = realloc(v->items, v->cap * sizeof(*v->items));
+        size_t newcap = v->cap ? v->cap * 2 : 16;
+        dnsb_resolver **tmp = realloc(v->items, newcap * sizeof(*v->items));
+        if (!tmp) return -1;
+        v->items = tmp;
+        v->cap = newcap;
     }
     v->items[v->n++] = r;
+    return 0;
 }
 
 void dnsb_doh_free_state(void *s);
@@ -140,9 +144,20 @@ void dnsb_engine_set_domains(dnsb_engine *e, const char **domains, size_t n) {
     g_mutex_lock(&e->mutex);
     for (size_t i = 0; i < e->uncached_pool_n; i++) free(e->uncached_pool[i]);
     free(e->uncached_pool);
-    e->uncached_pool = calloc(n, sizeof(char *));
-    e->uncached_pool_n = n;
-    for (size_t i = 0; i < n; i++) e->uncached_pool[i] = dnsb_strdup(domains[i]);
+    e->uncached_pool = NULL;
+    e->uncached_pool_n = 0;
+    if (n > 0) {
+        char **pool = calloc(n, sizeof(char *));
+        if (!pool) {
+            DNSB_WARN("OOM allocating uncached pool (%zu entries); pool is empty", n);
+        } else {
+            for (size_t i = 0; i < n; i++) pool[i] = dnsb_strdup(domains[i]);
+            /* Publish pool pointer and size as the last writes so a worker
+               that observes uncached_pool_n > 0 also sees the contents. */
+            e->uncached_pool = pool;
+            e->uncached_pool_n = n;
+        }
+    }
     g_mutex_unlock(&e->mutex);
 }
 
@@ -163,7 +178,10 @@ int dnsb_engine_add_resolver(dnsb_engine *e, dnsb_resolver *r) {
     r->ep.port    = r->port ? r->port : 53;
     snprintf(r->ep.addr_str, sizeof(r->ep.addr_str), "%s", r->addr);
 
-    resolver_vec_push(&e->resolvers, r);
+    if (resolver_vec_push(&e->resolvers, r) != 0) {
+        DNSB_WARN("OOM growing resolver vector");
+        return -1;
+    }
     return 0;
 }
 
@@ -176,10 +194,12 @@ dnsb_resolver *dnsb_engine_resolver_at(dnsb_engine *e, size_t i) {
 int dnsb_engine_is_running(dnsb_engine *e) { return atomic_load(&e->running); }
 
 static void emit_event(dnsb_engine *e, dnsb_event_kind kind, size_t idx, double progress) {
-    if (!e->cb) return;
     dnsb_event evt = { .kind = kind, .resolver_index = idx, .progress = progress };
+    /* NULL check must be inside the lock — otherwise a concurrent
+       dnsb_engine_set_callback(e, NULL, NULL) from the window-destroy path
+       can null e->cb after the check and we'd invoke a NULL pointer. */
     g_mutex_lock(&e->callback_mutex);
-    e->cb(&evt, e->cb_user);
+    if (e->cb) e->cb(&evt, e->cb_user);
     g_mutex_unlock(&e->callback_mutex);
 }
 
@@ -373,7 +393,9 @@ static void worker_func(gpointer data, gpointer user_data) {
                 dnsb_response_info info;
                 if (dnsb_pkt_parse_response(rbuf, rlen, &info) == 0) {
                     if (info.rcode == DNSB_RCODE_NOERROR && info.answer_family != 0) {
+                        g_mutex_lock(&r->stats_mutex);
                         r->redirects = 1;
+                        g_mutex_unlock(&r->stats_mutex);
                     }
                 }
             }
@@ -399,7 +421,11 @@ static void worker_func(gpointer data, gpointer user_data) {
             if (rc == 0) {
                 dnsb_response_info info;
                 if (dnsb_pkt_parse_response(rbuf, rlen, &info) == 0) {
-                    if (info.rcode == DNSB_RCODE_NOERROR && info.ad) r->dnssec_ok = 1;
+                    if (info.rcode == DNSB_RCODE_NOERROR && info.ad) {
+                        g_mutex_lock(&r->stats_mutex);
+                        r->dnssec_ok = 1;
+                        g_mutex_unlock(&r->stats_mutex);
+                    }
                 }
             }
         }
@@ -418,9 +444,12 @@ int dnsb_engine_start(dnsb_engine *e) {
     if (atomic_load(&e->running)) return -1;
     if (e->resolvers.n == 0) return -1;
 
-    /* Reset all stats. */
+    /* Reset all stats. The UI's refresh thread may be reading these even
+       though running=0 right now, and we're about to flip the running flag.
+       Resetting under the per-resolver lock keeps reads coherent. */
     for (size_t i = 0; i < e->resolvers.n; i++) {
         dnsb_resolver *r = e->resolvers.items[i];
+        g_mutex_lock(&r->stats_mutex);
         dnsb_stats_reset(&r->cached);
         dnsb_stats_reset(&r->uncached);
         dnsb_stats_reset(&r->dotcom);
@@ -430,6 +459,7 @@ int dnsb_engine_start(dnsb_engine *e) {
         r->sidelined = 0;
         r->redirects = 0;
         r->dnssec_ok = 0;
+        g_mutex_unlock(&r->stats_mutex);
     }
 
     atomic_store(&e->cancel, 0);

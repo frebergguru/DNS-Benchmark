@@ -6,25 +6,22 @@ function(dnsb_add_test name)
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
+# Smoke variant: same compile flags, but the test reports 77 to CTest when
+# SKIP_NETWORK_TESTS is set, and we forward that env var explicitly so the
+# child process sees it even if the CI runner scrubs the environment.
+function(dnsb_add_smoke_test name)
+    dnsb_add_test(${name})
+    set_tests_properties(${name} PROPERTIES
+        SKIP_RETURN_CODE 77
+        ENVIRONMENT "SKIP_NETWORK_TESTS=$ENV{SKIP_NETWORK_TESTS}")
+endfunction()
+
 dnsb_add_test(test_dns_packet)
 dnsb_add_test(test_stats)
 dnsb_add_test(test_resolvers_io)
 
-# Live network smoke check — skipped via SKIP_NETWORK_TESTS env var.
-add_executable(smoke_live smoke_live.c)
-target_link_libraries(smoke_live PRIVATE dnsb_core)
-target_compile_options(smoke_live PRIVATE -UNDEBUG)
-add_test(NAME smoke_live COMMAND smoke_live)
-set_tests_properties(smoke_live PROPERTIES SKIP_RETURN_CODE 77)
-
-add_executable(smoke_engine smoke_engine.c)
-target_link_libraries(smoke_engine PRIVATE dnsb_core)
-target_compile_options(smoke_engine PRIVATE -UNDEBUG)
-add_test(NAME smoke_engine COMMAND smoke_engine)
-set_tests_properties(smoke_engine PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
-
-add_executable(smoke_transports smoke_transports.c)
-target_link_libraries(smoke_transports PRIVATE dnsb_core)
-target_compile_options(smoke_transports PRIVATE -UNDEBUG)
-add_test(NAME smoke_transports COMMAND smoke_transports)
-set_tests_properties(smoke_transports PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
+dnsb_add_smoke_test(smoke_live)
+dnsb_add_smoke_test(smoke_engine)
+set_tests_properties(smoke_engine PROPERTIES TIMEOUT 30)
+dnsb_add_smoke_test(smoke_transports)
+set_tests_properties(smoke_transports PROPERTIES TIMEOUT 30)

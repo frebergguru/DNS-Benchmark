@@ -118,8 +118,8 @@ static gchar *build_conclusion_text(dnsb_engine *eng) {
 
     /* Find best cached & uncached. */
     double best_c = 1e9, best_u = 1e9;
-    const char *best_c_name = NULL, *best_u_name = NULL;
-    const char *best_c_addr = NULL, *best_u_addr = NULL;
+    gchar *best_c_name = NULL, *best_u_name = NULL;
+    gchar *best_c_addr = NULL, *best_u_addr = NULL;
     int sidelined = 0, redirectors = 0, ok = 0;
 
     for (size_t i = 0; i < n; i++) {
@@ -136,8 +136,19 @@ static gchar *build_conclusion_text(dnsb_engine *eng) {
         if (s_redirects)   redirectors++;
         if (s_ok == 0)     continue;
         ok++;
-        if (mc > 0 && mc < best_c) { best_c = mc; best_c_name = r->name; best_c_addr = r->addr; }
-        if (mu > 0 && mu < best_u) { best_u = mu; best_u_name = r->name; best_u_addr = r->addr; }
+        /* Copy r->name/r->addr rather than borrowing the engine's pointers:
+           if the engine is reconfigured between this scan and the markup
+           render below, those pointers could be freed. */
+        if (mc > 0 && mc < best_c) {
+            best_c = mc;
+            g_free(best_c_name); best_c_name = g_strdup(r->name);
+            g_free(best_c_addr); best_c_addr = g_strdup(r->addr);
+        }
+        if (mu > 0 && mu < best_u) {
+            best_u = mu;
+            g_free(best_u_name); best_u_name = g_strdup(r->name);
+            g_free(best_u_addr); best_u_addr = g_strdup(r->addr);
+        }
     }
 
     GString *s = g_string_new(NULL);
@@ -184,6 +195,10 @@ static gchar *build_conclusion_text(dnsb_engine *eng) {
         "  • Avoid <span foreground='#cc7722'>orange-flagged</span> redirectors — they hijack invalid names.\n"
         "  • Re-run several times; one snapshot is noisy.\n"));
 
+    g_free(best_c_name);
+    g_free(best_c_addr);
+    g_free(best_u_name);
+    g_free(best_u_addr);
     return g_string_free(s, FALSE);
 }
 
@@ -382,7 +397,11 @@ static void on_run_clicked(GtkButton *btn, gpointer data) {
 static void on_stop_clicked(GtkButton *btn, gpointer data) {
     dnsb_window *w = data;
     dnsb_engine_stop(w->engine);
-    g_idle_add(ui_refresh_cb, w);
+    /* Must go through the same throttle as on_engine_event — otherwise the
+       second ui_refresh_cb queued by the RUN_DONE event survives the single
+       g_idle_remove_by_data() call in dnsb_window_destroy and fires after w
+       is freed. */
+    if (!atomic_exchange(&w->idle_pending, 1)) g_idle_add(ui_refresh_cb, w);
 }
 
 static void on_save_clicked(GtkButton *btn, gpointer data) {
@@ -457,13 +476,28 @@ static void on_clone_clicked(GtkButton *btn, gpointer data) {
     gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(w->root));
 
     GtkWidget *nb = gtk_notebook_new();
-    dnsb_tab_nameservers ns = dnsb_tab_nameservers_new(GTK_TREE_MODEL(snap));
+
+    /* Both views see a sort model so pinned-first ordering matches the
+       main window. The chart and the tabular view each get their own
+       wrapper so the user can re-sort the tabular view without disturbing
+       the chart. */
+    GtkTreeModel *chart_sort = gtk_tree_model_sort_new_with_model(GTK_TREE_MODEL(snap));
+    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(chart_sort), DNSB_COL_CACHED_MS,
+                                    dnsb_pin_first_compare,
+                                    GINT_TO_POINTER(DNSB_COL_CACHED_MS), NULL);
+    gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(chart_sort),
+                                         DNSB_COL_CACHED_MS, GTK_SORT_ASCENDING);
+
+    dnsb_tab_nameservers ns = dnsb_tab_nameservers_new(chart_sort);
     GtkTreeModel *sort_model = gtk_tree_model_sort_new_with_model(GTK_TREE_MODEL(snap));
     GtkWidget *tab = dnsb_tab_tabular_new(sort_model);
     gtk_notebook_append_page(GTK_NOTEBOOK(nb), ns.root, gtk_label_new(_("Nameservers")));
     gtk_notebook_append_page(GTK_NOTEBOOK(nb), tab,     gtk_label_new(_("Tabular Data")));
     gtk_container_add(GTK_CONTAINER(win), nb);
-    /* Snapshot store is owned by widgets via reference counting. */
+    /* Each widget (chart, tree view) holds its own ref. Drop the creation
+       refs so everything is freed when the snapshot window is closed. */
+    g_object_unref(chart_sort);
+    g_object_unref(sort_model);
     g_object_unref(snap);
     gtk_widget_show_all(win);
 }
@@ -627,8 +661,6 @@ static void update_theme_button_label(dnsb_window *w) {
     gtk_button_set_label(GTK_BUTTON(w->theme_btn), label);
 }
 
-extern void dnsb_app_rebuild_window(void);  /* defined in main.c */
-
 static const char *current_lang_label(void) {
     char *pref = dnsb_lang_pref_load();
     const char *p = pref ? pref : "auto";
@@ -639,9 +671,12 @@ static const char *current_lang_label(void) {
     return label;
 }
 
-static gboolean rebuild_window_idle(gpointer data) {
-    (void)data;
-    dnsb_app_rebuild_window();
+extern void dnsb_app_apply_lang_and_rebuild(const char *code);  /* main.c */
+
+static gboolean apply_lang_then_rebuild_idle(gpointer data) {
+    char *code = data;
+    dnsb_app_apply_lang_and_rebuild(code);
+    g_free(code);
     return G_SOURCE_REMOVE;
 }
 
@@ -654,11 +689,11 @@ static void on_lang_radio_toggled(GtkToggleButton *btn, gpointer data) {
     g_free(current);
 
     dnsb_lang_pref_save(code);
-    dnsb_i18n_set_language(code);
-    /* Rebuild the window so the new translations show up. Deferred to an
-       idle so the popover finishes closing and this signal handler unwinds
-       before we tear our own ancestor widget down. */
-    g_idle_add(rebuild_window_idle, NULL);
+    /* Defer to an idle so the popover finishes closing and this signal
+       handler unwinds before we tear down our ancestor. The idle handler
+       stops the engine *before* mutating LC_ALL/LANGUAGE so no worker is
+       racing setlocale (which is not thread-safe). */
+    g_idle_add(apply_lang_then_rebuild_idle, g_strdup(code));
 }
 
 static GtkWidget *build_lang_button(dnsb_window *w) {
@@ -770,15 +805,19 @@ static void on_settings_clicked(GtkButton *btn, gpointer data) {
     gtk_widget_set_margin_start(outer, 16);
     gtk_widget_set_margin_end(outer, 16);
 
+    /* Initialise widgets from the engine's current config so settings the
+       user already applied are visible on reopen. */
+    dnsb_engine_config cur = dnsb_engine_get_config(w->engine);
+
     /* === Sampling group === */
     GtkWidget *gx1 = gtk_grid_new();
     gtk_grid_set_row_spacing(GTK_GRID(gx1), 8);
     gtk_grid_set_column_spacing(GTK_GRID(gx1), 12);
 
-    GtkAdjustment *adj_q = gtk_adjustment_new(50, 5, 5000, 5, 25, 0);
-    GtkAdjustment *adj_s = gtk_adjustment_new(20, 0, 1000, 5, 25, 0);
-    GtkAdjustment *adj_t = gtk_adjustment_new(1500, 100, 10000, 100, 500, 0);
-    GtkAdjustment *adj_c = gtk_adjustment_new(32, 1, 500, 1, 8, 0);
+    GtkAdjustment *adj_q = gtk_adjustment_new(cur.query_sets, 5, 5000, 5, 25, 0);
+    GtkAdjustment *adj_s = gtk_adjustment_new(cur.spacing_ms, 0, 1000, 5, 25, 0);
+    GtkAdjustment *adj_t = gtk_adjustment_new(cur.timeout_ms, 100, 10000, 100, 500, 0);
+    GtkAdjustment *adj_c = gtk_adjustment_new(cur.concurrency, 1, 500, 1, 8, 0);
     GtkWidget *spin_q = gtk_spin_button_new(adj_q, 1, 0);
     GtkWidget *spin_s = gtk_spin_button_new(adj_s, 1, 0);
     GtkWidget *spin_t = gtk_spin_button_new(adj_t, 1, 0);
@@ -807,7 +846,8 @@ static void on_settings_clicked(GtkButton *btn, gpointer data) {
         _("After the main loop, query a random .invalid name. Resolvers returning an A record (instead of NXDOMAIN) get the orange flag."));
     gtk_widget_set_tooltip_text(chk_dnssec,
         _("After the main loop, ask for a known signed domain with the DO bit set and check the AD flag in the reply. Off by default because the DO bit makes a handful of broken resolvers refuse to answer at all."));
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(chk_redirect), TRUE);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(chk_redirect), cur.probe_redirection ? TRUE : FALSE);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(chk_dnssec),   cur.probe_dnssec ? TRUE : FALSE);
     gtk_box_pack_start(GTK_BOX(probes), chk_redirect, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(probes), chk_dnssec,   FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(outer), framed(_("Probes"), probes), FALSE, FALSE, 0);
@@ -816,7 +856,9 @@ static void on_settings_clicked(GtkButton *btn, gpointer data) {
     gtk_widget_show_all(dlg);
 
     if (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_ACCEPT) {
-        dnsb_engine_config new_cfg = dnsb_engine_default_config();
+        /* Start from the current config so fields the dialog doesn't expose
+           (e.g. sideline_after) aren't silently reset on every Apply. */
+        dnsb_engine_config new_cfg = cur;
         new_cfg.query_sets        = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_q));
         new_cfg.spacing_ms        = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_s));
         new_cfg.timeout_ms        = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin_t));
@@ -1044,6 +1086,11 @@ dnsb_window *dnsb_window_new(GtkApplication *app, dnsb_engine *engine, const cha
     GtkWidget *intro = dnsb_tab_intro_new();
     w->ns_tab   = dnsb_tab_nameservers_new(chart_sort);
     GtkWidget *tabular_root = dnsb_tab_tabular_new(tabular_sort);
+    /* dnsb_chart_new and gtk_tree_view_new_with_model each take their own
+       ref to the model. Drop our creation refs so the wrappers get freed
+       when the widgets that own them are destroyed. */
+    g_object_unref(chart_sort);
+    g_object_unref(tabular_sort);
     w->conc_tab = dnsb_tab_conclusions_new();
 
     GtkWidget *help = dnsb_tab_help_new();
@@ -1092,6 +1139,13 @@ void dnsb_window_destroy(dnsb_window *w) {
     if (w->root) {
         g_object_remove_weak_pointer(G_OBJECT(w->root), (gpointer *)&w->root);
         gtk_widget_destroy(w->root);
+    }
+    /* The two GtkTreeModelSort wrappers each held a ref to w->store; both
+       are gone now. Drop our creation ref so the GtkListStore (and all the
+       copied string data) is finalised. */
+    if (w->store) {
+        g_object_unref(w->store);
+        w->store = NULL;
     }
     free(w->row_for_resolver);
     g_free(w->data_dir);

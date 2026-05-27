@@ -10,6 +10,8 @@ option(WITH_LDNS "Enable libldns for DNSSEC validation" OFF)
 option(WITH_DOH   "Enable DNS-over-HTTPS transport (requires libcurl)" ON)
 option(WITH_DOT   "Enable DNS-over-TLS transport (requires OpenSSL)"   ON)
 option(BUILD_TESTING "Build unit tests" ON)
+option(DNSB_WERROR   "Treat compiler warnings as errors" OFF)
+option(DNSB_SANITIZE "Build with AddressSanitizer + UndefinedBehaviorSanitizer" OFF)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
@@ -17,6 +19,16 @@ endif()
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra -Wno-unused-parameter)
+    if(DNSB_WERROR)
+        add_compile_options(-Werror)
+    endif()
+    if(DNSB_SANITIZE)
+        # Catches the exact class of bugs the codebase has been burned by
+        # (concurrent realloc vs qsort on stats samples). Enable with
+        # -DDNSB_SANITIZE=ON for local dev and CI canary runs.
+        add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+        add_link_options(-fsanitize=address,undefined)
+    endif()
 endif()
 
 find_package(PkgConfig REQUIRED)
@@ -160,8 +172,12 @@ if(MSGFMT_EXECUTABLE)
             COMMENT "msgfmt: ${lang}.po"
         )
         list(APPEND DNSB_MO_OUTPUTS ${mo_out})
+        # OPTIONAL so `cmake --install` doesn't error out on a fresh build
+        # tree that hasn't run the `translations` target yet; the .mo file
+        # is regenerated as soon as anything depends on it.
         install(FILES ${mo_out}
-                DESTINATION share/locale/${lang}/LC_MESSAGES)
+                DESTINATION share/locale/${lang}/LC_MESSAGES
+                OPTIONAL)
     endforeach()
     if(DNSB_MO_OUTPUTS)
         add_custom_target(translations ALL DEPENDS ${DNSB_MO_OUTPUTS})

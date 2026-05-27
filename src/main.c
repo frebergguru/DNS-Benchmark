@@ -53,6 +53,17 @@ void dnsb_app_rebuild_window(void) {
     if (old) dnsb_window_destroy(old);
 }
 
+/* Language switch entry point invoked from the language-popover radio.
+   setlocale is not thread-safe, so we must stop and join workers (via
+   dnsb_engine_stop) BEFORE mutating LC_ALL / _nl_msg_cat_cntr. */
+void dnsb_app_apply_lang_and_rebuild(const char *code) {
+    if (!g_state) return;
+    if (dnsb_engine_is_running(g_state->engine))
+        dnsb_engine_stop(g_state->engine);
+    dnsb_i18n_set_language(code);
+    dnsb_app_rebuild_window();
+}
+
 static int file_exists(const char *p) {
     struct stat st;
     return stat(p, &st) == 0;

@@ -95,15 +95,20 @@ int dnsb_tcp_exchange(const dnsb_endpoint *ep,
     frame[1] = (uint8_t)(query_len & 0xff);
     memcpy(frame + 2, query, query_len);
 
-    if (send_all(s, frame, 2 + query_len, timeout_ms, deadline) != 0) {
-        dnsb_closesock(s); return -1;
-    }
+    /* Preserve the -2/-1 distinction from send_all/recv_n so the engine
+       can tell post-connect timeouts apart from hard failures; collapsing
+       them caused slow resolvers to accumulate consecutive_fails at the
+       same rate as broken ones and get sidelined too aggressively. */
+    int sr = send_all(s, frame, 2 + query_len, timeout_ms, deadline);
+    if (sr != 0) { dnsb_closesock(s); return sr; }
 
     uint8_t lenbuf[2];
-    if (recv_n(s, lenbuf, 2, deadline) != 0) { dnsb_closesock(s); return -1; }
+    int rr = recv_n(s, lenbuf, 2, deadline);
+    if (rr != 0) { dnsb_closesock(s); return rr; }
     size_t rlen = ((size_t)lenbuf[0] << 8) | lenbuf[1];
     if (rlen > resp_cap) { dnsb_closesock(s); return -1; }
-    if (recv_n(s, resp_buf, rlen, deadline) != 0) { dnsb_closesock(s); return -1; }
+    rr = recv_n(s, resp_buf, rlen, deadline);
+    if (rr != 0) { dnsb_closesock(s); return rr; }
 
     *resp_len = rlen;
     *rtt_ns = dnsb_now_ns() - t0;
